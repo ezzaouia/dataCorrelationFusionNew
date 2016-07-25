@@ -20,7 +20,8 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
         dataset0AsVideoAvg: [],
         dataset1AsVideoWMAl: [],
         dataset2AsVideoDomWM: [],
-        dataset3AsAudio: []
+        dataset3AsAudio: [],
+        dataset4AsVideoEmotionsHisto: []
     };
 
     // init function 
@@ -280,14 +281,6 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
             return _.values(bag);
         });
 
-        // I'll use the objects already computed to plot line chart
-        vm.audioVideoLineChartData = {
-            dataset0AsVideoAvg: _.map(videoEmotionsByAudioTimeSegmentForMoodMapAsAvgPosNegFormulaMean, videoLineChartDataMapper),
-            dataset1AsVideoWMAl: _.map(videoEmotionsByAudioTimeSegmentForMoodMapAsVecCoorWMForEachEmotionFormulaMean, videoLineChartDataMapper),
-            dataset2AsVideoDomWM: _.map(videoEmotionsByAudioTimeSegmentForMoodMapAsVecCoorDomEmotionForEachImageFormulaMean, videoLineChartDataMapper),
-            dataset3AsAudio: _.map(vm.audioEmotionsByTimeSegmentForMoodMap, audioLineChartDataMapper)
-        };
-
         // get audio video pos/neg
         // audio
         let audioValenceArousalPosNeg = _.map(vm.jTotableAudioEmotions.result.analysisSegments, audioValenceArousalPosNegMapperFilter);
@@ -298,6 +291,27 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
         vm.valenceConfusionMatrix = compteConfusionMatrix(_.pluck(audioValenceArousalPosNeg, 'valence'), _.pluck(videoValenceArousalPosNeg, 'valence'));
         vm.arousalConfusionMatrix = compteConfusionMatrix(_.pluck(audioValenceArousalPosNeg, 'arousal'), _.pluck(videoValenceArousalPosNeg, 'arousal'));
 
+        // get proportion of each emotions in the video
+        let videoAllImagesScores = emotionSumFilter(vm.selectedVideoEmotions.video_emotion_scores);
+        videoAllImagesScores = _.mapValues(videoAllImagesScores, function (val) {
+            return val * 100;
+        });
+        videoAllImagesScores = _.mapKeys(videoAllImagesScores, function (value, key) {
+            return key.toLowerCase();
+        });
+
+
+        // I'll use the objects already computed to plot line chart
+        vm.audioVideoLineChartData = {
+            dataset0AsVideoAvg: _.map(videoEmotionsByAudioTimeSegmentForMoodMapAsAvgPosNegFormulaMean, videoLineChartDataMapper),
+            dataset1AsVideoWMAl: _.map(videoEmotionsByAudioTimeSegmentForMoodMapAsVecCoorWMForEachEmotionFormulaMean, videoLineChartDataMapper),
+            dataset2AsVideoDomWM: _.map(videoEmotionsByAudioTimeSegmentForMoodMapAsVecCoorDomEmotionForEachImageFormulaMean, videoLineChartDataMapper),
+            dataset3AsAudio: _.map(vm.audioEmotionsByTimeSegmentForMoodMap, audioLineChartDataMapper),
+            dataset4AsVideoEmotionsHisto: [{ x: 0 }, _.extend({ x: 1 }, videoAllImagesScores), { x: 2 }]
+        };
+
+        $log.info('vm.audioVideoLineChartData', vm.audioVideoLineChartData.dataset4AsVideoEmotionsHisto);
+        
         // save valence arousal
         // audio
         // let audioValence = _.map(vm.audioEmotionsByTimeSegmentForMoodMap, function (array) {
@@ -361,6 +375,85 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
     function audioLineChartDataMapper(array, index) {
         return { x: index, valence: array[0] * 100, arousal: array[1] * 100 };
     }
+
+
+    this.videoEmotionsHistoChartOptions = {
+        margin: { top: 5 },
+        series: [
+            {
+                axis: "y",
+                dataset: "dataset4AsVideoEmotionsHisto",
+                key: "fear",
+                label: "Fear",
+                color: "#2c9cc2",
+                type: ['column'],
+                id: 'mySeriesFear'
+            },
+            {
+                axis: "y",
+                dataset: "dataset4AsVideoEmotionsHisto",
+                key: "anger",
+                label: "Anger",
+                color: "#f99937",
+                type: ['column'],
+                id: 'mySerieAnger'
+            },
+            {
+                axis: "y",
+                dataset: "dataset4AsVideoEmotionsHisto",
+                key: "sadness",
+                label: "Sadness",
+                color: "#92678c",
+                type: ['column'],
+                id: 'mySeriesSadness'
+            },
+            {
+                axis: "y",
+                dataset: "dataset4AsVideoEmotionsHisto",
+                key: "happiness",
+                label: "Happiness",
+                color: "#9fca45",
+                type: ['column'],
+                id: 'mySeriesHappiness'
+            },
+            {
+                axis: "y",
+                dataset: "dataset4AsVideoEmotionsHisto",
+                key: "neutral",
+                label: "Neutral",
+                color: "blue",
+                type: ['column'],
+                id: 'mySeriesNeutral'
+            },
+            {
+                axis: "y",
+                dataset: "dataset4AsVideoEmotionsHisto",
+                key: "contempt",
+                label: "Contempt",
+                color: "green",
+                type: ['column'],
+                id: 'mySeriesContempt'
+            },
+            {
+                axis: "y",
+                dataset: "dataset4AsVideoEmotionsHisto",
+                key: "disgust",
+                label: "Disgust",
+                color: "red",
+                type: ['column'],
+                id: 'mySeriesDisgust'
+            }
+        ],
+        axes: {
+            x: {
+                key: "x",
+                ticks: [0, 1, 2]
+            },
+            y: {
+                max: 102
+            }
+        }
+    };
 
 
     this.audioVideoLineChartOptions = {

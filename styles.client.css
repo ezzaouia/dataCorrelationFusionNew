@@ -16,6 +16,8 @@ header {
     justify-content: space-around;
 }
 
+#audioVideoContainerHistoChart {}
+
 #progressCircle {
      bottom: 0; left: 0; top: 0; right: 0;
     margin: auto;
