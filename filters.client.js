@@ -190,6 +190,23 @@ filters.filter('emotionSum', function () {
     };
 });
 
+filters.filter('emotionSumWithRound', function (roundFilter) {
+    return function (screenshotsBySeg) {
+        let emotionSum = { neutral: 0, happiness: 0, surprise: 0, sadness: 0, fear: 0, anger: 0, contempt: 0, disgust: 0 };
+        _.forEach(screenshotsBySeg, function (screenshotItem) {
+            _.forEach(screenshotItem.scores, function (val, key) {
+                emotionSum[key.toLowerCase()] += val;
+            });
+        });
+
+        emotionSum = _.mapValues(emotionSum, function (val) {
+            return roundFilter(100 * val / _.size(screenshotsBySeg));
+        });
+
+        return emotionSum;
+    };
+});
+
 filters.filter('emotionSumGroup', function () {
     return function (emotionSum) {
         let valenceNeg = (emotionSum['ANGER'] + emotionSum['FEAR'] + emotionSum['SADNESS'] + emotionSum['CONTEMPT'] + emotionSum['DISGUST']);
@@ -222,7 +239,7 @@ filters.filter('videoValenceArousalPosNeg', function () {
         let negArou = _propPaisWiseArgmax(negArousal)[1];
 
         //console.log('====', { valence: (posVal >= negVal) ? 1 : 0, arousal: (posArou >= negArou) ? 1 : 0 });
-        
+
         return { valence: (posVal >= negVal) ? 1 : 0, arousal: (posArou >= negArou) ? 1 : 0 };
     };
 })
@@ -234,14 +251,14 @@ filters.filter('videoValenceArousalPosNegCombiner', function (videoValenceArousa
         let arousalPos = 0;
         let arousalNeg = 0;
         _.forEach(screenshotsBySeg, function (image) {
-            let object  = videoValenceArousalPosNegFilter(image.scores);
+            let object = videoValenceArousalPosNegFilter(image.scores);
             if (object.valence == 1) { valencePos++; }
             if (object.valence == 0) { valenceNeg++; }
-            
+
             if (object.arousal == 1) { arousalPos++; }
             if (object.arousal == 0) { arousalNeg++; }
             //console.log('==', object);
-            
+
         })
 
         return { valence: (valencePos >= valenceNeg) ? 1 : 0, arousal: (arousalPos >= arousalNeg) ? 1 : 0 };
@@ -283,7 +300,7 @@ filters.filter('emotionArgmaxReduce', function () {
     return function (emotionArgmax) {
         var groupedEmotions = {}
         _.forEach(emotionArgmax, function (array) {
-            (groupedEmotions[ array[ 0 ] ] = groupedEmotions[ array[ 0 ] ] || []).push(array[ 1 ]);
+            (groupedEmotions[array[0]] = groupedEmotions[array[0]] || []).push(array[1]);
         });
 
         return _.map(groupedEmotions, function (val, key) {
@@ -317,8 +334,8 @@ filters.filter('emotionWeightedMean', function () {
         var mean = { valence: 0, arousal: 0 };
 
         _.forEach(flatten, function (val, index) {
-            mean[ 'valence' ] += frequencyVector[ index ] * meanValueVector[ index ] * _.get(_.first(_.where(valenceArousalMappingTable, { 'emotion_name': _.get(val, 'emotion') })), 'valence');
-            mean[ 'arousal' ] += frequencyVector[ index ] * meanValueVector[ index ] * _.get(_.first(_.where(valenceArousalMappingTable, { 'emotion_name': _.get(val, 'emotion') })), 'arousal');
+            mean['valence'] += frequencyVector[index] * meanValueVector[index] * _.get(_.first(_.where(valenceArousalMappingTable, { 'emotion_name': _.get(val, 'emotion') })), 'valence');
+            mean['arousal'] += frequencyVector[index] * meanValueVector[index] * _.get(_.first(_.where(valenceArousalMappingTable, { 'emotion_name': _.get(val, 'emotion') })), 'arousal');
         });
 
         return mean;
@@ -339,6 +356,119 @@ filters.filter('emotionArgmaxCombineFrequent', function () {
 
             return _.where(val, { frequency: frequentEmotion.frequency });
         });
+    };
+});
+
+filters.filter('posNegNeuEmotions', function (roundFilter) {
+    return function (imageScores) {
+        let lowerObj = _.transform(imageScores, function (result, val, key) {
+            result[key.toLowerCase()] = val;
+        });
+        // group emotion by pos/neg
+        let neutral = _.pick(lowerObj, ['neutral']);
+        let positive = _.pick(lowerObj, ['happiness', 'surprise']);
+        let negative = _.pick(lowerObj, ['sadness', 'disgust', 'contempt', 'fear', 'anger']);
+
+        positive = _.sum(_.values(positive));
+        negative = _.sum(_.values(negative));
+        return { 'neutral': roundFilter(_.get(neutral, 'neutral') * 100), 'positive': roundFilter(positive * 100), 'negative': roundFilter(negative * 100) };
+    };
+});
+
+filters.filter('keyPairWiseObjectArgmax', function () {
+    return function (object) {
+        let resu = {};
+        let vals = _.values(object);
+        let keys = _.keys(object);
+        let max = _.max(vals);
+        let key = keys[_.indexOf(vals, max)];
+        resu[key] = max
+        return _.extend({}, resu);
+    };
+});
+
+filters.filter('groupByAllEmotions', function (roundFilter) {
+    return function (arrayBySegment) {
+        return _.map(arrayBySegment, function (bag) {
+            let result = { neutral: 0, happiness: 0, surprise: 0, sadness: 0, fear: 0, anger: 0, contempt: 0, disgust: 0 };
+            _.forEach(bag, function (v) {
+                switch (_.keys(v)[0]) {
+                    case 'neutral':
+                        result.neutral++
+                        break;
+                    case 'happiness':
+                        result.happiness++
+                        break;
+                    case 'surprise':
+                        result.surprise++
+                        break;
+                    case 'sadness':
+                        result.sadness++
+                        break;
+                    case 'disgust':
+                        result.disgust++
+                        break;
+                    case 'contempt':
+                        result.contempt++
+                        break;
+                    case 'fear':
+                        result.fear++
+                        break;
+                    case 'anger':
+                        result.anger++
+                        break;
+                }
+            })
+
+            result.neutral = roundFilter(100 * result.neutral / _.size(bag));
+            result.happiness = roundFilter(100 * result.happiness / _.size(bag));
+            result.surprise = roundFilter(100 * result.surprise / _.size(bag));
+            result.sadness = roundFilter(100 * result.sadness / _.size(bag));
+            result.disgust = roundFilter(100 * result.disgust / _.size(bag));
+            result.contempt = roundFilter(100 * result.contempt / _.size(bag));
+            result.fear = roundFilter(100 * result.fear / _.size(bag));
+            result.anger = roundFilter(100 * result.anger / _.size(bag));
+
+            return result;
+        });
+    };
+});
+
+filters.filter('groupByPosNegNeuEmotions', function (roundFilter) {
+    return function (arrayBySegment) {
+        return _.map(arrayBySegment, function (bag) {
+            let result = { neutral: 0, positive: 0, negative: 0 };
+            _.forEach(bag, function (v) {
+                switch (_.keys(v)[0]) {
+                    case 'neutral':
+                        result.neutral++
+                        break;
+                    case 'positive':
+                        result.positive++
+                        break;
+                    case 'negative':
+                        result.negative++
+                        break;
+                }
+            })
+
+            result.neutral = roundFilter(100 * result.neutral / _.size(bag));
+            result.positive = roundFilter(100 * result.positive / _.size(bag));
+            result.negative = roundFilter(100 * result.negative / _.size(bag));
+            return result;
+        });
+    };
+});
+
+filters.filter('tNthreshold', function (TNthreshold) {
+    return function (posNegNeuObject) {
+        return (Math.abs(posNegNeuObject.negative - _.max([posNegNeuObject.positive, posNegNeuObject.neutral, posNegNeuObject.negative])) <= TNthreshold)  ? true : false; 
+    };
+});
+
+filters.filter('tPthreshold', function (TPthreshold) {
+    return function (posNegNeuObject) {
+        return (posNegNeuObject.positive - _.max([posNegNeuObject.neutral, posNegNeuObject.negative]) >= TPthreshold)  ? true : false; 
     };
 });
 

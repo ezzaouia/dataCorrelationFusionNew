@@ -6,7 +6,9 @@ let controllers = angular.module('controllers.client', []);
 function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter, FileSaver, Blob,
     valenceArousalAsAvgMaxPosMaxNegFilter, imageScoresWeightedMeanFilter, argmaxEmotionFilter,
     valenceArousalSegmentMeanFilter, valenceArousalSegmentDomEmotionWeightedMeanFilter,
-    audioValenceArousalPosNegMapperFilter, emotionSumFilter, emotionSumGroupFilter, videoValenceArousalPosNegCombinerFilter) {
+    audioValenceArousalPosNegMapperFilter, emotionSumFilter, emotionSumGroupFilter, videoValenceArousalPosNegCombinerFilter,
+    posNegNeuEmotionsFilter, keyPairWiseObjectArgmaxFilter, groupByPosNegNeuEmotionsFilter, groupByAllEmotionsFilter,
+    emotionSumWithRoundFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter) {
 
     let vm = this;
 
@@ -16,12 +18,18 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
     this.spSessions = null;
     this.startEndSwitcher = 'START';
 
+    vm.tNthreshold = [];
     this.audioVideoLineChartData = {
         dataset0AsVideoAvg: [],
         dataset1AsVideoWMAl: [],
         dataset2AsVideoDomWM: [],
         dataset3AsAudio: [],
-        dataset4AsVideoEmotionsHisto: []
+        dataset4AsVideoEmotionsHisto: [],
+        dataset5VideoTimeSeries: [],
+        dataset6VideoTimeSeriesAllEmotions: [],
+        dataset7VideoTimeSeriesTNthreshold: [],
+        dataset8VideoTimeSeriesTPthreshold: [],
+        dataset9VideoTimeSeriesAllEmotionsInterestingPoints: []
     };
 
     // init function 
@@ -293,12 +301,60 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
 
         // get proportion of each emotions in the video
         let videoAllImagesScores = emotionSumFilter(vm.selectedVideoEmotions.video_emotion_scores);
+        let videoAllImagesScoresByAudioSeg = _.map(screenshotsByAudioTimeSegment, emotionSumFilter);
         videoAllImagesScores = _.mapValues(videoAllImagesScores, function (val) {
             return val * 100;
         });
         videoAllImagesScores = _.mapKeys(videoAllImagesScores, function (value, key) {
             return key.toLowerCase();
         });
+
+        // time series line chart
+        // 1. map each emotion's score inside parent array, bag images array to Pos Neu Neg emotions
+        let screenshotsByAudioTimeSegmentMappedPosNegNeu = _.map(screenshotsByAudioTimeSegment, function (bag) {
+            return _.map(bag, function (item) {
+                return posNegNeuEmotionsFilter(item.scores);
+            });
+        });
+
+        // 2. map each emotion's score inside parent array, bag images array to argmax from pos neg neu
+        let screenshotsByAudioTimeSegmentMappedPosNegNeuArgmax = _.map(screenshotsByAudioTimeSegmentMappedPosNegNeu, function (bag) {
+            return _.map(bag, function (item) {
+                return keyPairWiseObjectArgmaxFilter(item);
+            });
+        });
+
+        // 3. frenquency of each emotion pos neg neu
+        let screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion = groupByPosNegNeuEmotionsFilter(screenshotsByAudioTimeSegmentMappedPosNegNeuArgmax);
+        screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion = _.map(screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion, function (item, index) {
+            return _.extend({ x: index }, item);
+        })
+
+        // here same as the mapping done with pos neg and neu but with all emotions
+        // 2. map each emotion's score inside parent array, bag images array to argmax from pos neg neu
+        let screenshotsByAudioTimeSegmentMeanForEachEmotion = _.map(screenshotsByAudioTimeSegment, emotionSumWithRoundFilter);
+
+        // 3. frenquency of each emotion pos neg neu
+        screenshotsByAudioTimeSegmentMeanForEachEmotion = _.map(screenshotsByAudioTimeSegmentMeanForEachEmotion, function (item, index) {
+            return _.extend({ x: index }, item);
+        });
+
+        //$log.info('screenshotsByAudioTimeSegmentMappedPosNegNeu', screenshotsByAudioTimeSegmentMeanForEachEmotion);
+        let tNthreshold = _.filter(screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion, function (item) {
+            return tNthresholdFilter(item);
+        });
+
+        let tPthreshold = _.filter(screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion, function (item) {
+            return tPthresholdFilter(item);
+        });
+
+        let interestingPoints = tNthreshold.concat(tPthreshold);
+        let interestingPointsIndices = _.pluck(interestingPoints, 'x');
+        let screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints = _.filter(screenshotsByAudioTimeSegmentMeanForEachEmotion, function (item) {
+            return _.indexOf(interestingPointsIndices, item.x) !== -1 ? true : false;
+        });
+
+        $log.info('screenshotsByAudioTimeSegmentMeanForEachEmotionCleanedUp', screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints);
 
 
         // I'll use the objects already computed to plot line chart
@@ -307,11 +363,16 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
             dataset1AsVideoWMAl: _.map(videoEmotionsByAudioTimeSegmentForMoodMapAsVecCoorWMForEachEmotionFormulaMean, videoLineChartDataMapper),
             dataset2AsVideoDomWM: _.map(videoEmotionsByAudioTimeSegmentForMoodMapAsVecCoorDomEmotionForEachImageFormulaMean, videoLineChartDataMapper),
             dataset3AsAudio: _.map(vm.audioEmotionsByTimeSegmentForMoodMap, audioLineChartDataMapper),
-            dataset4AsVideoEmotionsHisto: [{ x: 0 }, _.extend({ x: 1 }, videoAllImagesScores), { x: 2 }]
+            dataset4AsVideoEmotionsHisto: [{ x: 0 }, _.extend({ x: 1 }, videoAllImagesScores), { x: 2 }],
+            dataset5VideoTimeSeries: screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion,
+            dataset6VideoTimeSeriesAllEmotions: screenshotsByAudioTimeSegmentMeanForEachEmotion,
+            dataset7VideoTimeSeriesTNthreshold: tNthreshold,
+            dataset8VideoTimeSeriesTPthreshold: tPthreshold,
+            dataset9VideoTimeSeriesAllEmotionsInterestingPoints: screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints
         };
 
-        $log.info('vm.audioVideoLineChartData', vm.audioVideoLineChartData.dataset4AsVideoEmotionsHisto);
-        
+        //$log.info('vm.audioVideoLineChartData', videoAllImagesScoresByAudioSeg)
+
         // save valence arousal
         // audio
         // let audioValence = _.map(vm.audioEmotionsByTimeSegmentForMoodMap, function (array) {
@@ -385,7 +446,7 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
                 dataset: "dataset4AsVideoEmotionsHisto",
                 key: "fear",
                 label: "Fear",
-                color: "#2c9cc2",
+                color: "#9C27B0",
                 type: ['column'],
                 id: 'mySeriesFear'
             },
@@ -394,7 +455,7 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
                 dataset: "dataset4AsVideoEmotionsHisto",
                 key: "anger",
                 label: "Anger",
-                color: "#f99937",
+                color: "#E91E63",
                 type: ['column'],
                 id: 'mySerieAnger'
             },
@@ -403,7 +464,7 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
                 dataset: "dataset4AsVideoEmotionsHisto",
                 key: "sadness",
                 label: "Sadness",
-                color: "#92678c",
+                color: "#000000",
                 type: ['column'],
                 id: 'mySeriesSadness'
             },
@@ -412,7 +473,7 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
                 dataset: "dataset4AsVideoEmotionsHisto",
                 key: "happiness",
                 label: "Happiness",
-                color: "#9fca45",
+                color: "#4CAF50",
                 type: ['column'],
                 id: 'mySeriesHappiness'
             },
@@ -421,7 +482,7 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
                 dataset: "dataset4AsVideoEmotionsHisto",
                 key: "neutral",
                 label: "Neutral",
-                color: "blue",
+                color: "#2196F3",
                 type: ['column'],
                 id: 'mySeriesNeutral'
             },
@@ -430,7 +491,7 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
                 dataset: "dataset4AsVideoEmotionsHisto",
                 key: "contempt",
                 label: "Contempt",
-                color: "green",
+                color: "#009688",
                 type: ['column'],
                 id: 'mySeriesContempt'
             },
@@ -439,7 +500,16 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
                 dataset: "dataset4AsVideoEmotionsHisto",
                 key: "disgust",
                 label: "Disgust",
-                color: "red",
+                color: "#5C5C5C",
+                type: ['column'],
+                id: 'mySeriesDisgust'
+            },
+            {
+                axis: "y",
+                dataset: "dataset4AsVideoEmotionsHisto",
+                key: "surprise",
+                label: "Surprise",
+                color: "#FF9800",
                 type: ['column'],
                 id: 'mySeriesDisgust'
             }
@@ -455,6 +525,242 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
         }
     };
 
+    this.videoTimeSeriesLineChartAllEmotionsOptions = {
+        margin: { top: 5 },
+        series: [
+            {
+                axis: "y",
+                dataset: "dataset6VideoTimeSeriesAllEmotions",
+                key: "fear",
+                label: "Fear",
+                color: "#9C27B0",
+                type: ['column'],
+                id: 'mySeriesFear'
+            },
+            {
+                axis: "y",
+                dataset: "dataset6VideoTimeSeriesAllEmotions",
+                key: "anger",
+                label: "Anger",
+                color: "#E91E63",
+                type: ['column'],
+                id: 'mySerieAnger'
+            },
+            {
+                axis: "y",
+                dataset: "dataset6VideoTimeSeriesAllEmotions",
+                key: "sadness",
+                label: "Sadness",
+                color: "#000000",
+                type: ['column'],
+                id: 'mySeriesSadness'
+            },
+            {
+                axis: "y",
+                dataset: "dataset6VideoTimeSeriesAllEmotions",
+                key: "happiness",
+                label: "Happiness",
+                color: "#4CAF50",
+                type: ['column'],
+                id: 'mySeriesHappiness'
+            },
+            {
+                axis: "y",
+                dataset: "dataset6VideoTimeSeriesAllEmotions",
+                key: "neutral",
+                label: "Neutral",
+                color: "#2196F3",
+                type: ['column'],
+                id: 'mySeriesNeutral'
+            },
+            {
+                axis: "y",
+                dataset: "dataset6VideoTimeSeriesAllEmotions",
+                key: "contempt",
+                label: "Contempt",
+                color: "#009688",
+                type: ['column'],
+                id: 'mySeriesContempt'
+            },
+            {
+                axis: "y",
+                dataset: "dataset6VideoTimeSeriesAllEmotions",
+                key: "disgust",
+                label: "Disgust",
+                color: "#5C5C5C",
+                type: ['column'],
+                id: 'mySeriesDisgust'
+            },
+            {
+                axis: "y",
+                dataset: "dataset6VideoTimeSeriesAllEmotions",
+                key: "surprise",
+                label: "Surprise",
+                color: "#FF9800",
+                type: ['column'],
+                id: 'mySeriesDisgust'
+            }
+        ],
+        axes: {
+            x: {
+                key: 'x',
+                tickFormat: function (value, index) {
+                    return value + '/' + timeToStrFilter(timeToDateFilter(vm.jTotableAudioEmotions.result.analysisSegments[value].offset)) + '-' +
+                        timeToStrFilter(timeToDateFilter(strToNumberFilter(vm.jTotableAudioEmotions.result.analysisSegments[value].duration) + vm.jTotableAudioEmotions.result.analysisSegments[value].offset));
+                }
+            },
+            y: {
+                max: 102
+            }
+        }
+    };
+
+    this.videoTimeSeriesLineChartAllEmotionsInterestingPointsOptions = {
+        margin: { top: 5 },
+        series: [
+            {
+                axis: "y",
+                dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+                key: "fear",
+                label: "Fear",
+                color: "#9C27B0",
+                type: ['column'],
+                id: 'mySeriesFear'
+            },
+            {
+                axis: "y",
+                dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+                key: "anger",
+                label: "Anger",
+                color: "#E91E63",
+                type: ['column'],
+                id: 'mySerieAnger'
+            },
+            {
+                axis: "y",
+                dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+                key: "sadness",
+                label: "Sadness",
+                color: "#000000",
+                type: ['column'],
+                id: 'mySeriesSadness'
+            },
+            {
+                axis: "y",
+                dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+                key: "happiness",
+                label: "Happiness",
+                color: "#4CAF50",
+                type: ['column'],
+                id: 'mySeriesHappiness'
+            },
+            {
+                axis: "y",
+                dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+                key: "neutral",
+                label: "Neutral",
+                color: "#2196F3",
+                type: ['column'],
+                id: 'mySeriesNeutral'
+            },
+            {
+                axis: "y",
+                dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+                key: "contempt",
+                label: "Contempt",
+                color: "#009688",
+                type: ['column'],
+                id: 'mySeriesContempt'
+            },
+            {
+                axis: "y",
+                dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+                key: "disgust",
+                label: "Disgust",
+                color: "#5C5C5C",
+                type: ['column'],
+                id: 'mySeriesDisgust'
+            },
+            {
+                axis: "y",
+                dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+                key: "surprise",
+                label: "Surprise",
+                color: "#FF9800",
+                type: ['column'],
+                id: 'mySeriesDisgust'
+            }
+        ],
+        axes: {
+            x: {
+                key: 'x',
+                padding: {min:3, max: 6},
+                tickFormat: function (value, index) {
+                    return value + '/' + timeToStrFilter(timeToDateFilter(vm.jTotableAudioEmotions.result.analysisSegments[value].offset)) + '-' +
+                        timeToStrFilter(timeToDateFilter(strToNumberFilter(vm.jTotableAudioEmotions.result.analysisSegments[value].duration) + vm.jTotableAudioEmotions.result.analysisSegments[value].offset));
+                }
+            },
+            y: {
+                max: 102
+            }
+        }
+    };
+
+    this.videoTimeSeriesLineChart3EmotionsOptions = {
+        series: [
+            {
+                axis: "y",
+                dataset: "dataset5VideoTimeSeries",
+                key: "neutral",
+                label: "Neutral",
+                color: "#2196F3",
+                type: ['line'],
+                id: 'mySeries0'
+            },
+            {
+                axis: "y",
+                dataset: "dataset5VideoTimeSeries",
+                key: "positive",
+                label: "Positive",
+                color: "#558B2F",
+                type: ['line'],
+                id: 'mySeries1'
+            },
+            {
+                axis: "y",
+                dataset: "dataset5VideoTimeSeries",
+                key: "negative",
+                label: "Negative",
+                color: "#C62828",
+                type: ['line'],
+                id: 'mySeries2'
+            },
+            {
+                axis: "y",
+                dataset: "dataset7VideoTimeSeriesTNthreshold",
+                key: "negative",
+                label: "TNegative",
+                color: "#C62828",
+                type: ['dot'],
+                id: 'mySeries3'
+            },
+            {
+                axis: "y",
+                dataset: "dataset8VideoTimeSeriesTPthreshold",
+                key: "positive",
+                label: "TPositive",
+                color: "#558B2F",
+                type: ['dot'],
+                id: 'mySeries4'
+            }
+
+        ],
+        axes: {
+            x: { key: "x" },
+            y: { max: 110 }
+        },
+        symbols: []
+    };
 
     this.audioVideoLineChartOptions = {
         series: [

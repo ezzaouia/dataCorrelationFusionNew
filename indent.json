@@ -1,0 +1,93 @@
+[
+    {
+        "scores": {
+            "surprise": 0.000277247134,
+            "sadness": 0.00589834666,
+            "neutral": 0.988634467,
+            "happiness": 0.001458507,
+            "fear": 0.00002218617,
+            "disgust": 0.000259115215,
+            "contempt": 0.00300706946,
+            "anger": 0.000443070952
+        },
+        "screenshot": "screenshot104-cropped.jpg"
+    },
+    {
+        "scores": {
+            "surprise": 0.00000703636942,
+            "sadness": 0.00105901866,
+            "neutral": 0.998309433,
+            "happiness": 0.000005457306,
+            "fear": 2.39834463e-7,
+            "disgust": 0.00000607529364,
+            "contempt": 0.000410846464,
+            "anger": 0.000201921124
+        },
+        "screenshot": "screenshot105-cropped.jpg"
+    },
+    {
+        "scores": {
+            "surprise": 0.0000214668344,
+            "sadness": 0.000946571061,
+            "neutral": 0.9746437,
+            "happiness": 0.0000891654563,
+            "fear": 0.00000271085173,
+            "disgust": 0.00007650343,
+            "contempt": 0.0173680261,
+            "anger": 0.00685183331
+        },
+        "screenshot": "screenshot106-cropped.jpg"
+    },
+    {
+        "scores": {
+            "surprise": 0.0000247550615,
+            "sadness": 0.004610617,
+            "neutral": 0.954600751,
+            "happiness": 0.000181837488,
+            "fear": 0.00000336207563,
+            "disgust": 0.0009641327,
+            "contempt": 0.0176053289,
+            "anger": 0.0220092013
+        },
+        "screenshot": "screenshot107-cropped.jpg"
+    },
+    {
+        "scores": {
+            "surprise": 0.0002706012,
+            "sadness": 0.250729263,
+            "neutral": 0.698293149,
+            "happiness": 0.001130729,
+            "fear": 0.000225085038,
+            "disgust": 0.00705958623,
+            "contempt": 0.03742047,
+            "anger": 0.004871089
+        },
+        "screenshot": "screenshot108-cropped.jpg"
+    },
+    {
+        "scores": {
+            "surprise": 0.0117921317,
+            "sadness": 0.007127606,
+            "neutral": 0.258371383,
+            "happiness": 0.6920103,
+            "fear": 0.0007837432,
+            "disgust": 0.00709405169,
+            "contempt": 0.01937887,
+            "anger": 0.00344190584
+        },
+        "screenshot": "screenshot109-cropped.jpg"
+    },
+    {
+        "scores": {
+            "surprise": 0.00191097206,
+            "sadness": 0.008312894,
+            "neutral": 0.1361328,
+            "happiness": 0.418473244,
+            "fear": 0.000189238388,
+            "disgust": 0.04751622,
+            "contempt": 0.379616231,
+            "anger": 0.007848402
+        },
+        "screenshot": "screenshot110-cropped.jpg"
+    }
+]

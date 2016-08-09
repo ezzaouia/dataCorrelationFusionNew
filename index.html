@@ -189,6 +189,40 @@
     </div>
 
     <br><br>
+
+    <header>
+        <u>IV) Video Time Series Line Chart:</u>
+    </header>
+    <div id="videoTimeSeriesLineChart3Emotions">
+        <div class="element">
+            <div class="my-chart" style="height: 300px">
+                <linechart data="main.audioVideoLineChartData" options="main.videoTimeSeriesLineChart3EmotionsOptions"></linechart>
+            </div>
+        </div>
+    </div>
+
+    <br><br>
+
+    <div id="videoTimeSeriesLineChartAllEmotions">
+        <div class="element">
+            <div class="my-chart" style="height: 300px">
+                <linechart data="main.audioVideoLineChartData" options="main.videoTimeSeriesLineChartAllEmotionsOptions"></linechart>
+            </div>
+        </div>
+    </div>
+
+    <br><br>
+
+    <div id="videoTimeSeriesLineChartAllEmotionsInterestingPoints">
+        <div class="element">
+            <div class="my-chart" style="height: 300px">
+                <linechart data="main.audioVideoLineChartData" options="main.videoTimeSeriesLineChartAllEmotionsInterestingPointsOptions"></linechart>
+            </div>
+        </div>
+    </div>
+
+    <br><br>
+
     <header>
         <u>V) Histo video emotions:</u>
     </header>
@@ -252,6 +286,7 @@
                                     <!--<th md-column>Image Nbr</th>-->
                                     <th md-column>Index</th>
                                     <th md-column>Images</th>
+                                    <th md-column>Agg. Scores</th>
                                     <th md-column>Reduce</th>
                                     <th md-column>Frequent</th>
                                     <th md-column>Mean</th>
@@ -262,6 +297,7 @@
                                     <!--<td md-cell>{{ key }}</td>-->
                                     <td md-cell>{{key}}</td>
                                     <td md-cell>{{vItems}}</td>
+                                    <td md-cell>{{vItems | emotionSum}}</td>
                                     <td md-cell>{{one = (vItems | emotionArgmax | emotionArgmaxReduce)}}</td>
                                     <td md-cell>{{one | emotionArgmaxCombineFrequent}}</td>
                                     <td md-cell>{{one | emotionWeightedMean}}</td>
