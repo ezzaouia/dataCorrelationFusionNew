@@ -3,7 +3,7 @@
 let controllers = angular.module('controllers.client', []);
 
 // controller definition goes here
-function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter, FileSaver, Blob,
+function MainCtrl($rootScope, $http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter, FileSaver, Blob,
     valenceArousalAsAvgMaxPosMaxNegFilter, imageScoresWeightedMeanFilter, argmaxEmotionFilter,
     valenceArousalSegmentMeanFilter, valenceArousalSegmentDomEmotionWeightedMeanFilter,
     audioValenceArousalPosNegMapperFilter, emotionSumFilter, emotionSumGroupFilter, videoValenceArousalPosNegCombinerFilter,
@@ -109,6 +109,7 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
 
     // apply filter
     this.applyFilter = function () {
+        this.chartData.push({ val0: 23, val1: 56, val3: 42, tickValue: 'tick1' })
         vm.activated = true;
 
         vm.audioVideoLineChartData = {
@@ -694,7 +695,7 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
         axes: {
             x: {
                 key: 'x',
-                padding: {min:3, max: 6},
+                padding: { min: 3, max: 6 },
                 tickFormat: function (value, index) {
                     return value + '/' + timeToStrFilter(timeToDateFilter(vm.jTotableAudioEmotions.result.analysisSegments[value].offset)) + '-' +
                         timeToStrFilter(timeToDateFilter(strToNumberFilter(vm.jTotableAudioEmotions.result.analysisSegments[value].duration) + vm.jTotableAudioEmotions.result.analysisSegments[value].offset));
@@ -1055,6 +1056,110 @@ function MainCtrl($http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter
         let data = new Blob([arrayData.join(',')], { type: 'text/plain;charset=utf-8' });
         FileSaver.saveAs(data, nameOfFile + vm.selectedSpSessions + '.txt');
     }
+
+
+    this.chartData = [
+        { val0: 23, val1: 56, val3: 42, tickValue: 'tick1' },
+        { val0: 13, val1: 64, val3: 33, tickValue: 'tick2' },
+        { val0: 22, val1: 11, val3: 44, tickValue: 'tick3' },
+        { val0: 22, val1: 11, val3: 44, tickValue: 'tick4' },
+        { val0: 22, val1: 11, val3: 44, tickValue: 'tick4' },
+        { val0: 22, val1: 11, val3: 44, tickValue: 'tick4' },
+        { val0: 22, val1: 11, val3: 44, tickValue: 'tick4' }
+    ];
+    this.chartOptions = [
+        {
+            axis: "y",
+            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+            key: "fear",
+            label: "Fear",
+            color: "#9C27B0",
+            type: ['column'],
+            id: 'mySeriesFear'
+        },
+        {
+            axis: "y",
+            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+            key: "anger",
+            label: "Anger",
+            color: "#E91E63",
+            type: ['column'],
+            id: 'mySerieAnger'
+        },
+        {
+            axis: "y",
+            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+            key: "sadness",
+            label: "Sadness",
+            color: "#000000",
+            type: ['column'],
+            id: 'mySeriesSadness'
+        },
+        {
+            axis: "y",
+            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+            key: "happiness",
+            label: "Happiness",
+            color: "#4CAF50",
+            type: ['column'],
+            id: 'mySeriesHappiness'
+        },
+        {
+            axis: "y",
+            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+            key: "neutral",
+            label: "Neutral",
+            color: "#2196F3",
+            type: ['column'],
+            id: 'mySeriesNeutral'
+        },
+        {
+            axis: "y",
+            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+            key: "contempt",
+            label: "Contempt",
+            color: "#009688",
+            type: ['column'],
+            id: 'mySeriesContempt'
+        },
+        {
+            axis: "y",
+            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+            key: "disgust",
+            label: "Disgust",
+            color: "#5C5C5C",
+            type: ['column'],
+            id: 'mySeriesDisgust'
+        },
+        {
+            axis: "y",
+            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
+            key: "surprise",
+            label: "Surprise",
+            color: "#FF9800",
+            type: ['column'],
+            id: 'mySeriesDisgust'
+        }
+    ];
+
+    this.slides = [
+        'http://bnj.bz/2p2S1X471H38/one.jpg',
+        'http://bnj.bz/352I0q311A23/two.jpg',
+        'http://bnj.bz/3j1J1h1s2o3p/three.jpg',
+        'http://bnj.bz/0i0l442Z433Y/four.jpg'
+    ];
+
+    this.flickityOptions = {
+        cellSelector: '.demo__slide',
+        resize: false,
+        setGallerySize: false,
+        friction: .4,
+        selectedAttraction: .1,
+    };
+
+const settle = $rootScope.$on('Flickity:demoId:settle', (event, data) => {
+    console.log('Flickity just settled!');
+});
 }
 
 

@@ -1,4 +1,47 @@
-/* Styles go here */
+#owl-demo .item{
+    margin: 0;
+    padding: 0;
+}
+#owl-demo .item img{
+  display: block;
+  width: 50%;
+  height: 50%;
+}
+
+
+.multiBarChart {
+    display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.node {
+    fill: #ccc;
+    stroke: green;
+    stroke-width: 2px;
+}
+
+.link {
+    stroke: #777;
+    stroke-width: 2px;
+}
+
+/* multi bar chart */
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.x.axis path {
+  display: none;
+}
 
 header {
     padding: 10px;

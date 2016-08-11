@@ -53,6 +53,16 @@ filters.filter('scale', function (d3) {
     };
 });
 
+
+filters.filter('scale0255', function (d3) {
+    return function (nbr) {
+        let scale = d3.scale.linear();
+        scale.domain([0, 255]);
+        scale.range([0, 1]);
+        return scale(nbr);
+    };
+});
+
 // first approach for compute valence and arousal from discrete emotions
 filters.filter('valenceArousalAsAvgMaxPosMaxNeg', function () {
     return function (imageScores) {

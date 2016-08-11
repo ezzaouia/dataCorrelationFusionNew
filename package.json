@@ -25,6 +25,7 @@
     "express": "^4.14.0",
     "gzippo": "^0.2.0",
     "lodash": "^3.10.1",
-    "morgan": "^1.7.0"
+    "morgan": "^1.7.0",
+    "web-audio-beat-detector": "0.0.2"
   }
 }

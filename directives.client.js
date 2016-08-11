@@ -867,3 +867,534 @@ directives.directive('discreteEmotionsScatterChart', function () {
 
     };
 });
+
+directives.directive('multiBarChart', function () {
+    return {
+        restricted: 'E',
+        controller: multiBarchartController,
+        scope: {
+            data: '=',
+            options: '=',
+            metaData: '='
+        }
+    };
+
+    function multiBarchartController($scope, $element, $log) {
+
+
+        var margin = { top: 20, right: 30, bottom: 30, left: 40 },
+            width = 960 - margin.left - margin.right,
+            height = 350 - margin.top - margin.bottom;
+
+        let cfgdKeys = _.pluck($scope.options, 'key');
+        let cfgdKeysCrspdngData = [];
+
+        _.forEach(cfgdKeys, function (key) {
+            cfgdKeysCrspdngData.push(_.pluck($scope.data, key));
+        });
+
+        let n = _.size(cfgdKeysCrspdngData[0]); // number of samples
+        let m = _.size(cfgdKeys); // number of series
+        let ticksVals = _.filter(d3.range(n), function (n) {
+            return n % 2 == 0;
+        });
+
+        $log.info('===================> scope', $scope);
+
+        $scope.$watch('data', function () {
+
+            cfgdKeys = _.pluck($scope.options, 'key');
+            cfgdKeysCrspdngData = [];
+
+            _.forEach(cfgdKeys, function (key) {
+                cfgdKeysCrspdngData.push(_.pluck($scope.data, key));
+            });
+
+            n = _.size(cfgdKeysCrspdngData[0]); // number of samples
+            m = _.size(cfgdKeys); // number of series
+
+            ticksVals = _.filter(d3.range(n), function (n) {
+                return n % 2 == 0;
+            });
+            updateMultiBarchart(n, m, ticksVals, cfgdKeysCrspdngData, $scope.options);
+
+            $log.info('===================> updating');
+        }, true)
+
+        var y = d3.scale.linear()
+            .domain([0, 100])
+            .range([height, 0]);
+
+        var x0 = d3.scale.ordinal()
+            .domain(d3.range(n))
+            .rangeBands([0, width], .2);
+
+        var x1 = d3.scale.ordinal()
+            .domain(d3.range(m))
+            .rangeBands([0, x0.rangeBand()]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x0)
+            .tickValues(ticksVals)
+            .orient("bottom")
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+
+
+        var svg = d3.select($element[0])
+            .append('div')
+            .classed("svg-container", true)
+            .attr('class', 'multiBarChart')
+            .append("svg")
+            .attr("preserveAspectRatio", "xMinYMin meet")
+            //.attr("viewBox", "0 0 930 700")
+            //class to make it responsive
+            .classed("svg-content-responsive", true)
+            .attr("width", '100%')//width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("svg:g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+
+        function updateMultiBarchart(n, m, ticksVals, cfgdKeysCrspdngData, chartOptions) {
+            x0.domain(d3.range(n));
+            x1.domain(d3.range(m))
+                .rangeBands([0, x0.rangeBand()]);
+
+            xAxis.tickValues(ticksVals);
+
+            svg.selectAll("rect").transition().remove();
+
+            d3.select(".x")
+                .transition()
+                .call(xAxis);
+
+            svg.append("g").selectAll("g")
+                .data(cfgdKeysCrspdngData)
+                .enter().append("g")
+                .style("fill", function (d, i) {
+                    return chartOptions[i].color;
+                })
+                .attr("transform", function (d, i) { return "translate(" + x1(i) + ",0)"; })
+                .selectAll("rect")
+                .data(function (d, i) {
+                    return d;
+                })
+                .enter().append("rect")
+                .attr("width", x1.rangeBand())
+                .attr("height", function (d) {
+                    return height - y(d)
+                })
+                .attr("x", function (d, i) { return x0(i); })
+                .attr("y", function (d) { return y(d); })
+                .on('click', function (d, i) {
+
+                    let screenshotBag = $scope.metaData[i];
+                    $log.info('clicked', d, screenshotBag);
+
+                    d3.select("#screenshotGallery").selectAll('.owl-carousel').remove();
+
+                    var item = d3.select("#screenshotGallery").append('div')
+                        .attr('class', 'owl-carousel owl-theme')
+                        .attr('id', 'owl-demo')
+                        .selectAll('.item')
+                        .data(screenshotBag);
+
+                    item.enter().append('div')
+                        .attr('class', 'item')
+
+                    item.exit().remove();
+
+                    item.selectAll('.picture')
+                        .data(function (d) { return [d]; })
+                        .enter().append('img')
+                        //.attr('class', 'picture')
+                        .attr('src', function (d) { return './data/imageDir/' + d.screenshot.replace('-cropped', ''); });
+                    $(document).ready(function () {
+
+                        $("#owl-demo").owlCarousel({
+                            //autoPlay: 3000, //Set AutoPlay to 3 seconds
+                            //items: 4
+                            //itemsDesktop: [1199, 3],
+                            //itemsDesktopSmall: [979, 3]
+                        });
+
+                    });
+
+
+                })
+                .on('mouseover', function (d, i) {
+
+
+                })
+                .on('mouseout', function () {
+                    // d3.select($element[0]).selectAll('.gallery').remove();
+                    //svg.selectAll('.link').remove();
+                })
+
+
+
+            function displayScreenshots() {
+
+                var icon_source = "./test3.jpg";
+                var links = [
+                    { source: ":)", target: "target", icon: icon_source },
+                    { source: ":D", target: "target", icon: icon_source },
+                    { source: ":(", target: "target", icon: icon_source },
+                    { source: ":X", target: "target", icon: icon_source },
+                    { source: ":]", target: "target", icon: icon_source }
+                ];
+
+                var nodes = {};
+
+                // Compute the distinct nodes from the links.
+                links.forEach(function (link) {
+                    link.source = nodes[link.source] || (nodes[link.source] = { name: link.source, icon: link.icon });
+                    link.target = nodes[link.target] || (nodes[link.target] = { name: link.target, icon: link.icon });
+                });
+
+                var force = d3.layout.force()
+                    .nodes(d3.values(nodes))
+                    .links(links)
+                    .size([width, height])
+                    .linkDistance(180)
+                    .charge(-700)
+                    .on("tick", tick)
+                    .start();
+
+                var link = svg.selectAll(".link")
+                    .data(force.links())
+                    .enter().append("line")
+                    .attr("class", "link");
+
+                var node = svg.selectAll(".node")
+                    .data(force.nodes())
+                    .enter().append("g")
+                    .attr("class", "node")
+                    .on("mouseenter", mouseenter)
+                    .on("mouseleave", mouseleave)
+                    .call(force.drag);
+
+                node.append("image")
+                    .attr("xlink:href", function (d) { return d.icon; })
+                    .attr("x", "-12px")
+                    .attr("y", "-12px")
+                    .attr("width", "80")
+                    .attr("height", "80");
+
+                node.append("text")
+                    .attr("x", 32)
+                    .attr("dy", ".35em")
+                    .text(function (d) { return d.name; });
+
+                function tick() {
+                    link
+                        .attr("x1", function (d) { return d.source.x; })
+                        .attr("y1", function (d) { return d.source.y; })
+                        .attr("x2", function (d) { return d.target.x; })
+                        .attr("y2", function (d) { return d.target.y; });
+
+                    node
+                        .attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
+                }
+
+                function mouseover() {
+                    d3.select(this).select("circle").transition()
+                        .duration(750)
+                        .attr("r", 16);
+                }
+
+                function mouseout() {
+                    d3.select(this).select("circle").transition()
+                        .duration(750)
+                        .attr("r", 8);
+                }
+
+                function mouseenter() {
+                    // select element in current context
+                    $log.info('mouseenter', this);
+
+                    d3.select(this)
+                        .select('image')
+                        .transition()
+                        .attr("x", function (d) { return -60; })
+                        .attr("y", function (d) { return -60; })
+                        .attr("width", 100)
+                        .attr("height", 100);
+                }
+
+                function mouseleave() {
+                    d3.select(this)
+                        .select('image')
+                        .transition()
+                        .attr("x", function (d) { return -25; })
+                        .attr("y", function (d) { return -25; })
+                        .attr("height", 36)
+                        .attr("width", 36);
+                }
+            }
+
+        }
+
+    }
+})
+
+directives.directive('imagesNodesChart', function () {
+    return {
+        restricted: 'E',
+        controller: imagesNodesController
+    }
+
+    function imagesNodesController($scope, $element, $log) {
+
+        var width = 960,
+            height = 800;
+
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        var icon_source = "./test3.jpg";
+        var links = [
+            { source: ":)", target: "target", icon: icon_source },
+            { source: ":D", target: "target", icon: icon_source },
+            { source: ":(", target: "target", icon: icon_source },
+            { source: ":X", target: "target", icon: icon_source },
+            { source: ":]", target: "target", icon: icon_source }
+        ];
+
+        var nodes = {};
+
+        // Compute the distinct nodes from the links.
+        links.forEach(function (link) {
+            link.source = nodes[link.source] || (nodes[link.source] = { name: link.source, icon: link.icon });
+            link.target = nodes[link.target] || (nodes[link.target] = { name: link.target, icon: link.icon });
+        });
+
+
+
+        var force = d3.layout.force()
+            .nodes(d3.values(nodes))
+            .links(links)
+            .size([width, height])
+            .linkDistance(180)
+            .charge(-300)
+            .on("tick", tick)
+            .start();
+
+
+
+        var link = svg.selectAll(".link")
+            .data(force.links())
+            .enter().append("line")
+            .attr("class", "link");
+
+        var node = svg.selectAll(".node")
+            .data(force.nodes())
+            .enter().append("g")
+            .attr("class", "node")
+            //.on("mouseover", mouseover)
+            //.on("mouseout", mouseout)
+            .on("mouseenter", mouseenter)
+            .on("mouseleave", mouseleave)
+            .call(force.drag);
+
+        node.append("circle")
+            .attr("r", 8);
+
+        node.append("image")
+            .attr("xlink:href", function (d) { return d.icon; })
+            .attr("x", "-12px")
+            .attr("y", "-12px")
+            .attr("width", "24px")
+            .attr("height", "24px");
+
+        node.append("a")
+            .attr("xlink:href", function (d) { return "http://somelink.com/link.php?id=" })
+            .append("circle")
+            .attr("cx", 24)
+            .attr("cy", 0)
+            .attr("r", 4)
+            .style("fill", "blue")
+            .style("opacity", 0.5);
+
+        node.append("text")
+            .attr("x", 32)
+            .attr("dy", ".35em")
+            .text(function (d) { return d.name; });
+
+        function tick() {
+            link
+                .attr("x1", function (d) { return d.source.x; })
+                .attr("y1", function (d) { return d.source.y; })
+                .attr("x2", function (d) { return d.target.x; })
+                .attr("y2", function (d) { return d.target.y; });
+
+            node
+                .attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
+        }
+
+        // function mouseover() {
+        //     d3.select(this).select("circle").transition()
+        //         .duration(750)
+        //         .attr("r", 16);
+        // }
+
+        // function mouseout() {
+        //     d3.select(this).select("circle").transition()
+        //         .duration(750)
+        //         .attr("r", 8);
+        // }
+
+        function mouseenter() {
+            // select element in current context
+            $log.info('mouseenter', this);
+
+            d3.select(this)
+                .select('image')
+                .transition()
+                .attr("x", function (d) { return -60; })
+                .attr("y", function (d) { return -60; })
+                .attr("width", 100)
+                .attr("height", 100);
+        }
+
+        function mouseleave() {
+            d3.select(this)
+                .select('image')
+                .transition()
+                .attr("x", function (d) { return -25; })
+                .attr("y", function (d) { return -25; })
+                .attr("height", 36)
+                .attr("width", 36);
+        }
+
+
+    }
+
+})
+
+directives.directive('webAudioApi', function () {
+    return {
+        restricted: 'E',
+        controller: webAudioApiController,
+        templateUrl: 'web-audio-api.view.html'
+    }
+
+    function webAudioApiController($scope, $element, $log, scale0255Filter) {
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var audioElement = document.getElementById('audioElement');
+        var audioSrc = audioCtx.createMediaElementSource(audioElement);
+        var analyser = audioCtx.createAnalyser();
+
+        // Bind our analyser to the media element source.
+        audioSrc.connect(analyser);
+        audioSrc.connect(audioCtx.destination);
+
+
+        var frequencyData = new Uint8Array(200);
+
+        var svgHeight = '300';
+        var svgWidth = '1200';
+        var barPadding = '1';
+
+        function createSvg(parent, height, width) {
+            return d3.select(parent).append('svg').attr('height', height).attr('width', width);
+        }
+
+        var svg = createSvg($element[0], svgHeight, svgWidth);
+
+        // Create our initial D3 chart.
+        svg.selectAll('rect')
+            .data(frequencyData)
+            .enter()
+            .append('rect')
+            .attr('x', function (d, i) {
+                return i * (svgWidth / frequencyData.length);
+            })
+            .attr('width', svgWidth / frequencyData.length - barPadding);
+
+        // Continuously loop and update chart with frequency data.
+        function renderChart() {
+            requestAnimationFrame(renderChart);
+
+            // Copy frequency data to frequencyData array.
+            analyser.getByteFrequencyData(frequencyData);
+
+            let colorMapPositive = d3.interpolateRgb(d3.rgb('#DCEDC8'), d3.rgb('#33691E'));
+            let colorMapNegative = d3.interpolateRgb(d3.rgb('#F8BBD0'), d3.rgb('#880E4F'));
+
+            $log.info('colorMapPositive', colorMapPositive);
+
+            // Update d3 chart with new data.
+            svg.selectAll('rect')
+                .data(frequencyData)
+                .attr('y', function (d) {
+                    return svgHeight - d;
+                })
+                .attr('height', function (d) {
+                    return d;
+                })
+                .attr('fill', function (d) {
+                    $log.info('d=========', d);
+
+                    return colorMapPositive(scale0255Filter(d));
+                });
+        }
+
+        // Run the loop
+        renderChart();
+
+        analyser.fftSize = 2048;
+        var tailleMemoireTampon = analyser.frequencyBinCount;
+        var tableauDonnees = new Uint8Array(tailleMemoireTampon);
+        var audioData = analyser.getByteTimeDomainData(tableauDonnees);
+        $log.info('tableauDonnees', audioData);
+
+
+        // dessine un oscilloscope de la source audio
+
+        let audio = document.getElementById('audioElement');
+        $scope.play = function () {
+            audio.currentTime = 20.0;
+            audio.play();
+        }
+
+        $scope.pause = function () {
+            audio.pause();
+        }
+
+        $scope.upVolume = function () {
+            audio.volume += 0.1;
+        }
+
+        $scope.downVolume = function () {
+            audio.volume -= 0.1;
+        }
+
+        let segmentEnd;
+        audio.addEventListener('timeupdate', function () {
+            if (segmentEnd && audio.currentTime >= segmentEnd) {
+                audio.pause();
+            }
+            console.log(audio.currentTime);
+        }, false);
+
+        $scope.playSegment = function (startTime, endTime) {
+            segmentEnd = endTime;
+            audio.currentTime = startTime;
+            audio.play();
+        }
+    }
+});
