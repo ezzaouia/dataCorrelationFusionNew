@@ -18,7 +18,7 @@ filters.filter('abs', function () {
 
 filters.filter('round', function () {
     return function (nbr) {
-        return _.round(nbr, 3);
+        return _.round(nbr, 2);
     };
 });
 

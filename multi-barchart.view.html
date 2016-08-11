@@ -1,0 +1,16 @@
+<svg id="audioBarChat" height="250" width="960"></svg>
+<div id="screenshotGallery"></div>
+
+<md-button ng-click="pause()" class="md-icon-button" aria-label="bb">
+    <ng-md-icon icon="pause_circle_outline" style="fill: #abcdef " size="24"></ng-md-icon>
+</md-button>
+<md-button ng-click="resume()" class="md-icon-button" aria-label="b">
+    <ng-md-icon icon="play_circle_outline" style="fill: #abcdef" size="24"></ng-md-icon>
+</md-button>
+<md-button ng-click="upVolume()" class="md-icon-button" aria-label="b">
+    <ng-md-icon icon="volume_up" style="fill:#abcdef " size="24"></ng-md-icon>
+</md-button>
+<md-button ng-click="downVolume()" class="md-icon-button" aria-label="b">
+    <ng-md-icon icon="volume_down" style="fill: #abcdef" size="24"></ng-md-icon>
+</md-button>
+<audio id="audioElement" src="./stereo.ogg"></audio>

@@ -49,12 +49,14 @@
         <md-progress-circular ng-hide="!main.activated" ng-disabled="!main.activated" class="md-hue-2" md-diameter="50px"></md-progress-circular>
     </div>
 
-    <div id="screenshotGallery"></div>
 
     <multi-bar-chart data="main.audioVideoLineChartData.dataset9VideoTimeSeriesAllEmotionsInterestingPoints" options="main.chartOptions"
-        meta-data="main.screenshotsByAudioTimeSegment">
-
+        meta-data-one="main.screenshotsByAudioTimeSegment" 
+        meta-data-two="main.jTotableAudioEmotions.result.analysisSegments"
+        meta-data-three="main.audioVideoLineChartData.dataset7VideoTimeSeriesTNthreshold" >
     </multi-bar-chart>
+
+    
     <!-- wrapper -->
 
     <!--<web-audio-api></web-audio-api>-->
