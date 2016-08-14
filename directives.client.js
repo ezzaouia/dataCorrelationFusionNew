@@ -174,7 +174,8 @@ directives.directive('moodMapChart', function () {
                     .style('top', (d3.event.pageY - 17) + 'px');
 
                 if ($scope.changeHandler) {
-                    $scope.changeHandler($scope.mood);
+                    $scope.segmentData = $scope.data[i];
+                    $scope.changeHandler($scope.segmentData);
                 }
             }
 
@@ -872,43 +873,43 @@ directives.directive('multiBarChart', function () {
     return {
         restricted: 'E',
         controller: multiBarchartController,
-        templateUrl: 'multi-barchart.view.html',
+        bindToController: true,
+        controllerAs: 'vm',
         scope: {
             data: '=',
-            options: '=',
-            metaDataOne: '=',
-            metaDataTwo: '=',
-            metaDataThree: '='
+            options: '='
         }
     };
 
-    function multiBarchartController($scope, $element, $log, scale0255Filter, roundFilter, propPaisWiseArgmaxFilter, capitalizeFilter) {
+    function multiBarchartController($scope, $element, $log, scale0255Filter, roundFilter, propPaisWiseArgmaxFilter, capitalizeFilter, scale0255To100Filter) {
+        let vm = this;
+        var margin = { top: 10, right: 0, bottom: 20, left: 25, legend: 40 },
+            width = 180 - margin.left - margin.right,
+            height = 150 - margin.top - margin.bottom;
 
-
-        var margin = { top: 20, right: 30, bottom: 30, left: 40 },
-            width = 960 - margin.left - margin.right,
-            height = 250 - margin.top - margin.bottom;
-
-        let cfgdKeys = _.pluck($scope.options, 'key');
+        let cfgdKeys = _.pluck(vm.options, 'key');
         let cfgdKeysCrspdngData = [];
 
         _.forEach(cfgdKeys, function (key) {
-            cfgdKeysCrspdngData.push(_.pluck($scope.data, key));
+            cfgdKeysCrspdngData.push(_.pluck(vm.data, key));
         });
 
         let n = _.size(cfgdKeysCrspdngData[0]); // number of samples
         let m = _.size(cfgdKeys); // number of series
         let ticksVals = _.filter(d3.range(n), function (n) {
-            return n % 2 == 0;
+            return 'a'//n % 2 == 0;
         });
 
-        $scope.$watch('data', function () {
+        $log.info('vm ==== =data', vm.data);
 
-            cfgdKeys = _.pluck($scope.options, 'key');
+
+        $scope.$watch('vm.data', function () {
+
+            cfgdKeys = _.pluck(vm.options.bars, 'key');
             cfgdKeysCrspdngData = [];
 
             _.forEach(cfgdKeys, function (key) {
-                cfgdKeysCrspdngData.push(_.pluck($scope.data, key));
+                cfgdKeysCrspdngData.push(_.pluck(vm.data, key));
             });
 
             n = _.size(cfgdKeysCrspdngData[0]); // number of samples
@@ -917,7 +918,8 @@ directives.directive('multiBarChart', function () {
             ticksVals = _.filter(d3.range(n), function (n) {
                 return n % 2 == 0;
             });
-            updateMultiBarchart(n, m, ticksVals, cfgdKeysCrspdngData, $scope.options);
+
+            updateMultiBarchart(n, m, ticksVals, cfgdKeysCrspdngData, vm.options);
 
         }, true)
 
@@ -935,28 +937,581 @@ directives.directive('multiBarChart', function () {
 
         var xAxis = d3.svg.axis()
             .scale(x0)
-            .tickValues(ticksVals)
-            .orient("bottom")
+            //.tickValues([ticksVals])
+            .tickFormat(function (d/*, i*/) {
+                return vm.options.ticks[d];
+            })
+            .orient("bottom");
 
         var yAxis = d3.svg.axis()
             .scale(y)
-            .orient("left")
+            .orient("left");
 
 
         var svg = d3.select($element[0])
             .append('div')
-            .classed("svg-container", true)
+            //.classed("svg-container", true)
             .attr('class', 'multiBarChart')
             .append("svg")
-            .attr("preserveAspectRatio", "xMinYMin meet")
+            //.attr("preserveAspectRatio", "xMinYMin meet")
             //.attr("viewBox", "0 0 930 700")
             //class to make it responsive
-            .classed("svg-content-responsive", true)
-            .attr("width", '100%')//width + margin.left + margin.right)
+            //.classed("svg-content-responsive", true)
+            .attr("width", width + margin.left + margin.right + margin.legend)
             .attr("height", height + margin.top + margin.bottom)
             .append("svg:g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 3)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Score");
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+
+        function updateMultiBarchart(n, m, ticksVals, cfgdKeysCrspdngData, chartOptions) {
+            x0.domain(d3.range(n));
+            x1.domain(d3.range(m))
+                .rangeBands([0, x0.rangeBand()]);
+
+            // xAxis.tickValues(ticksVals);
+
+            svg.selectAll(".bar-rect").transition().remove();
+
+            svg.select(".x")
+                .transition()
+                .call(xAxis);
+
+            svg.append("g").selectAll("g")
+                .data(cfgdKeysCrspdngData)
+                .enter().append("g")
+                .style("fill", function (d, i) {
+                    return chartOptions.bars[i].color;
+                })
+                .attr("transform", function (d, i) { return "translate(" + x1(i) + ",0)"; })
+                .selectAll("rect")
+                .data(function (d, i) {
+                    return d;
+                })
+                .enter()
+                .append("rect")
+                .attr('class', 'bar-rect')
+                .attr("width", x1.rangeBand())
+                .attr("height", function (d) {
+                    return height - y(d)
+                })
+                .attr("x", function (d, i) { return x0(i); })
+                .attr("y", function (d) { return y(d); })
+        }
+
+        buildMultiBartChartLegend(vm.options.bars);
+
+        function buildMultiBartChartLegend(data) {
+            // adding legend
+            var legend = svg.selectAll(".legend")
+                .data(data)
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", function (d, i) { return "translate(0," + i * 10 + ")"; });
+
+            legend.append("rect")
+                .attr("x", width + 35)
+                .attr("width", 5)
+                .attr("height", 5)
+                .style("fill", function (d) {
+                    return d.color;
+                });
+
+            legend.append("text")
+                .attr("x", width + 30)
+                .attr("y", 5 - 5 / 2) // to aling it with rect
+                .attr("dy", ".35em")
+                .style("text-anchor", "end")
+                .text(function (d) { return d.label; });
+        }
+
+    }
+})
+
+directives.directive('multiBarChartNew', function () {
+    return {
+        restricted: 'E',
+        controller: multiBarchartController,
+        bindToController: true,
+        controllerAs: 'vm2',
+        scope: {
+            data: '=',
+            options: '='
+        }
+    };
+
+    function multiBarchartController($scope, $element, $log, scale0255Filter, roundFilter, propPaisWiseArgmaxFilter, capitalizeFilter, scale0255To100Filter) {
+        let vm2 = this;
+        var margin = { top: 10, right: 0, bottom: 20, left: 25, legend: 40 },
+            width = 180 - margin.left - margin.right,
+            height = 150 - margin.top - margin.bottom;
+
+        let cfgdKeys = _.pluck(vm2.options, 'key');
+        let cfgdKeysCrspdngData = [];
+
+        _.forEach(cfgdKeys, function (key) {
+            cfgdKeysCrspdngData.push(_.pluck(vm2.data, key));
+        });
+
+        let n = _.size(cfgdKeysCrspdngData[0]); // number of samples
+        let m = _.size(cfgdKeys); // number of series
+        let ticksVals = _.filter(d3.range(n), function (n) {
+            return n % 2 == 0;
+        });
+
+        $scope.$watch('vm2.data', function () {
+
+            cfgdKeys = _.pluck(vm2.options.bars, 'key');
+            cfgdKeysCrspdngData = [];
+
+            _.forEach(cfgdKeys, function (key) {
+                cfgdKeysCrspdngData.push(_.pluck(vm2.data, key));
+            });
+
+            n = _.size(cfgdKeysCrspdngData[0]); // number of samples
+            m = _.size(cfgdKeys); // number of series
+
+            updateMultiBarchart(n, m, ticksVals, cfgdKeysCrspdngData, vm2.options);
+        }, true)
+
+        var y = d3.scale.linear()
+            .domain([-100, 100])
+            .range([height, 0]);
+
+        var x0 = d3.scale.ordinal()
+            .domain(d3.range(n))
+            .rangeBands([0, width], .2);
+
+        var x1 = d3.scale.ordinal()
+            .domain(d3.range(m))
+            .rangeBands([0, x0.rangeBand()]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x0)
+            .tickFormat(function (d/*, i*/) {
+                return vm2.options.ticks[d];
+            })
+            .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+
+
+        var svg = d3.select($element[0])
+            .append('div')
+            //.classed("svg-container", true)
+            .attr('class', 'multiBarChart')
+            .append("svg")
+            //.attr("preserveAspectRatio", "xMinYMin meet")
+            //.attr("viewBox", "0 0 930 700")
+            //class to make it responsive
+            //.classed("svg-content-responsive", true)
+            .attr("width", width + margin.left + margin.right + margin.legend)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("svg:g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 3)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Score");
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+
+        function updateMultiBarchart(n, m, ticksVals, cfgdKeysCrspdngData, chartOptions) {
+            x0.domain(d3.range(n));
+            x1.domain(d3.range(m))
+                .rangeBands([0, x0.rangeBand()]);
+
+            // xAxis.tickValues(ticksVals);
+
+            svg.selectAll(".bar-rect").transition().remove();
+
+            svg.select(".x")
+                .transition()
+                .call(xAxis);
+
+            svg.append("g").selectAll("g")
+                .data(cfgdKeysCrspdngData)
+                .enter().append("g")
+                .style("fill", function (d, i) {
+                    return chartOptions.bars[i].color;
+                })
+                .attr("transform", function (d, i) { return "translate(" + x1(i) + ",0)"; })
+                .selectAll("rect")
+                .data(function (d, i) {
+                    return d;
+                })
+                .enter()
+                .append("rect")
+                .attr('class', 'bar-rect')
+                .attr("width", x1.rangeBand())
+                .attr("height", function (d) {
+                    return Math.abs(y(d) - y(0));
+                })
+                .attr("x", function (d, i) { return x0(i); })
+                .attr("y", function (d) { return y(Math.max(0, d)); })
+        }
+
+        buildMultiBartChartLegend(vm2.options.bars);
+
+        function buildMultiBartChartLegend(data) {
+            // adding legend
+            var legend = svg.selectAll(".legend")
+                .data(data)
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", function (d, i) { return "translate(0," + i * 10 + ")"; });
+
+            legend.append("rect")
+                .attr("x", width + 35)
+                .attr("width", 5)
+                .attr("height", 5)
+                .style("fill", function (d) {
+                    return d.color;
+                });
+
+            legend.append("text")
+                .attr("x", width + 30)
+                .attr("y", 5 - 5 / 2) // to aling it with rect
+                .attr("dy", ".35em")
+                .style("text-anchor", "end")
+                .text(function (d) { return d.label; });
+        }
+
+
+    }
+})
+
+
+directives.directive('radarChart', function () {
+
+    return {
+        restricted: 'E',
+        controller: radarChartController,
+        templateUrl: 'radar-chart.view.html',
+        controllerAs: 'radarChartCtrl',
+        bindToController: true,
+        scope: {
+            data: '=',
+            options: '=',
+            metaData: '='
+        }
+    }
+
+    function radarChartController($scope, $element, $log, roundFilter, capitalizeFilter) {
+        let radarChartCtrl = this;
+        let videObject = [
+            { axis: 'Neutral', value: 0.0 },
+            { axis: 'Anger', value: 0 },
+            { axis: 'Sadness', value: 0 },
+            { axis: 'Happiness', value: 0 },
+            { axis: 'Contempt', value: 0 },
+            { axis: 'Fear', value: 0 },
+            { axis: 'Surprise', value: 0 },
+            { axis: 'Disgust', value: 0 }];
+        // watch for any change and draw the chart radar
+        $scope.$watch('radarChartCtrl.metaData', function () {
+            let mappedMetaData = null;
+            if (_.size(radarChartCtrl.metaData)) {
+                //  Call function to draw the Radar chart
+                $log.info('radarChartCtrl.metaData', radarChartCtrl.metaData);
+
+                RadarChart('.radarChart', [radarChartCtrl.metaData], radarChartCtrl.options);
+            } else {
+                RadarChart('.radarChart', videObject, radarChartCtrl.options);
+            }
+        }, true);
+    }
+});
+
+directives.directive('pieChartDonut', function () {
+
+    return {
+        restricted: 'E',
+        controller: pieChartController,
+        // templateUrl: 'radar-chart.view.html',
+        controllerAs: 'pieChartCtrl',
+        bindToController: true,
+        scope: {
+            data: '=',
+            options: '=',
+            metaData: '='
+        }
+    }
+
+    function pieChartController($scope, $element, $log, roundFilter, capitalizeFilter, scale0100To01Filter) {
+        let pieChartCtrl = this;
+        $scope.globalData = null;
+        // watch for any change and draw the chart radar
+        $scope.$watch('pieChartCtrl.data', function () {
+            $scope.globalData = pieChartCtrl.data;
+            render();
+        }, true);
+
+        var margin = { top: 30, right: 40, bottom: 30, left: 40, title: 10 },
+            width = Math.min(200, window.innerWidth - 10) - margin.left - margin.right,
+            height = Math.min(width, window.innerHeight - margin.top - margin.bottom - margin.title);
+
+        var color = d3.scale.category20();
+        // draw and append the container
+        var svg = d3.select($element[0])
+            // .append('div')
+            // .attr('class', 'pieChartDonutChart')
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height + margin.title);
+        // set the thickness of the inner and outer radii
+        var min = Math.min(width, height);
+        var oRadius = min / 2 * 0.9;
+        var iRadius = min / 2 * .85;
+        // construct default pie laoyut
+        var pie = d3.layout.pie().value(function (d) { return d.value; }).sort(null);
+        // construct arc generator
+        var arc = d3.svg.arc()
+            .outerRadius(oRadius)
+            .innerRadius(iRadius);
+        // creates the pie chart container
+        var g = svg.append('g')
+            .attr('transform', function () {
+                if (window.innerWidth >= 960) var shiftWidth = width / 2;
+                if (window.innerWidth < 960) var shiftWidth = width / 3;
+                return 'translate(' + (shiftWidth) + ',' + (height / 2 - margin.title / 2) + ')';
+            })
+
+        // enter data and draw pie chart
+        var path = g.datum(pieChartCtrl.data).selectAll("path")
+            .data(pie)
+            .enter().append("path")
+            .attr("class", "piechart")
+            .attr("fill", function (d, i) {
+                $log.info('color', d.data.color);
+
+                return d.data.color;
+            })
+            .attr("d", arc)
+            .each(function (d) {
+                this._current = d;
+            })
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .append("text")
+            //.attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+            .attr("transform", "translate(" + (width / 2 - margin.right) + "," + 0 + ")")  // centre below axis
+            .text("Pie Chart - Video");
+
+        var colorRange = d3.scale.category20();
+        var color = d3.scale.ordinal()
+            .range(colorRange.range());
+        var legendRectSize = 5;
+        var legendSpacing = 4;
+        var legendHeight = legendRectSize + legendSpacing;
+
+
+
+        function render() {
+            // generate new random data
+            //data = makeData(4);
+            // add transition to new path
+            g.datum(pieChartCtrl.data).selectAll("path").data(pie).transition().duration(700).attrTween("d", arcTween)
+            // add any new paths
+            g.datum(pieChartCtrl.data).selectAll("path")
+                .data(pie)
+                .enter().append("path")
+                .attr("class", "piechart")
+                .attr("fill", function (d, i) { return d.data.color; })
+                .attr("d", arc)
+                .each(function (d) { this._current = d; })
+            // remove data not being used
+            g.datum(pieChartCtrl.data).selectAll("path")
+                .data(pie).exit().remove();
+
+            buildPieChartLegend($scope.globalData || []);
+
+
+            // var legend = svg.selectAll('.legend')
+            //     .data($scope.globalData || [])
+            //     .enter()
+            //     .append('g')
+            //     .attr('class', 'legend')
+            //     .attr('transform', function (d, i) {
+            //         var height = legendRectSize + legendSpacing;
+            //         var offset = height * color.domain().length / 2;
+            //         var horz = 4 * legendRectSize;
+            //         var vert = i * height - offset;
+            //         return 'translate(' + horz + ',' + (vert + 50) + ')';
+            //     });
+
+            // legend.append('rect')
+            //     .attr('width', legendRectSize)
+            //     .attr('height', legendRectSize)
+            //     .style('fill', function (d) {
+            //         return d.color
+            //     })
+            //     .style('stroke', function (d) {
+            //         return d.color
+            //     })
+
+            // legend.append('text')
+            //     .attr('class', 'text-label-legend')
+            //     .attr('x', legendRectSize + legendSpacing)
+            //     .attr('y', legendRectSize - legendSpacing + legendRectSize / 2)
+            //     .text(function (d) { return d.label; })
+        }
+        render();
+
+        // Store the displayed angles in _current.
+        // Then, interpolate from _current to the new angles.
+        // During the transition, _current is updated in-place by d3.interpolate.
+        function arcTween(a) {
+            var i = d3.interpolate(this._current, a);
+            this._current = i(0);
+            return function (t) {
+                return arc(i(t));
+            };
+        }
+
+
+        function buildPieChartLegend(data) {
+            // adding legend
+            var legend = svg.selectAll(".legend")
+                .data(data)
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", function (d, i) { return "translate(0," + i * 10 + ")"; });
+
+            legend.append("rect")
+                .attr("x", width / 2 + 15)
+                .attr("y", height / 2 - 10)
+                .attr("width", 5)
+                .attr("height", 5)
+                .style("fill", function (d) {
+                    return d.color;
+                });
+
+            legend.append("text")
+                .attr("x", width / 2 + 10)
+                .attr("y", height / 2 + 5 / 2 - 10)
+                .attr("dy", ".35em")
+                .style("text-anchor", "end")
+                .text(function (d) { return d.label; });
+        }
+
+    }
+});
+
+directives.directive('emotionalTimeLinePlayerChartOld', function () {
+    return {
+        restricted: 'E',
+        controller: emotionalTimeLinePlayerController,
+        templateUrl: 'emotionalTimeLinePlayerChart.view.html',
+        bindToController: true,
+        controllerAs: 'vm',
+        scope: {
+            data: '=',
+            options: '=',
+            videoTpData: '=',
+            videoTnData: '=',
+            audioMetaData: '=',
+            videoMetaData: '='
+        }
+    };
+
+    function emotionalTimeLinePlayerController($scope, $element, $log, timeToStrFilter, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
+        let vm = this;
+        vm.globalData = [];
+
+        $scope.$watch('vm.videoTpData', function () {
+            vm.globalData = [];
+            _.forEach(vm.videoTpData, function (item) {
+                $log.info('_.find(vm.videoTpData, {x: 40})', _.find(vm.videoTpData, { x: 42 }));
+
+                vm.globalData.push({
+                    x: item.x,
+                    key: 'positive',
+                    value: item.positive,
+                    offset: vm.audioMetaData[item.x].offset,
+                    duration: vm.audioMetaData[item.x].duration
+                })
+            });
+
+            // _.forEach(vm.videoTnData, function (item) {
+            //     vm.globalData.push({
+            //         x: item.x,
+            //         key: 'negative',
+            //         value: item.negative,
+            //         offset: vm.audioMetaData[item.x].offset,
+            //         duration: vm.audioMetaData[item.x].duration
+            //     })
+            // });
+
+            updateEmotionalTimeLinePlayerChart();
+        }, true);
+
+        var margin = { top: 20, right: 30, bottom: 20, left: 30 },
+            width = 1000 - margin.left - margin.right,
+            height = 180 - margin.top - margin.bottom;
+
+        // y scale
+        var y = d3.scale.linear()
+            .domain([0, 100])
+            .range([height, 0]);
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+
+        var rScale = d3.scale.linear()
+            .range([2, 7]);
+
+        // x axis
+        var x = d3.time.scale()
+            .domain([0, 47 * 60 * 1000])
+            .range([0, width]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .ticks(d3.time.minute, 10)
+            .tickFormat(d3.time.format('%M:%S'));
+
+        // here the main svg
+        var svg = d3.select($element[0])
+            .select('#timeLine')
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("svg:g")
+            .attr('class', 'g_main')
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // adding axis x & y the svg
         svg.append("g")
             .attr("class", "y axis")
             .call(yAxis);
@@ -966,6 +1521,599 @@ directives.directive('multiBarChart', function () {
             .attr("transform", "translate(0," + height + ")")
             .call(xAxis);
 
+        let positiveEmotions = ['happiness', 'surprise'];
+        let negativeEmotions = ['sadness', 'disgust', 'contempt', 'fear', 'anger'];
+
+        let audio = null;
+        let segmentEnd;
+        let bubbles = null;
+
+        updateEmotionalTimeLinePlayerChart();
+
+        function updateEmotionalTimeLinePlayerChart() {
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+            audio = document.getElementById('audioElement');
+            audio.addEventListener('timeupdate', function () {
+                if (segmentEnd && audio.currentTime >= segmentEnd) {
+                    audio.pause();
+                }
+            }, false);
+
+            rScale.domain([0, d3.max(vm.globalData, function (d) { return d.value; })])
+            svg.selectAll("line").transition(700).remove()
+            svg.selectAll("circle").transition(700).remove()
+
+            // draw 
+            // ver lines
+            // svg.selectAll("vline")
+            //     .data(vm.globalData)
+            //     .enter().append("line")
+            //     .attr("class", "x")
+            //     .style("stroke", "blue")
+            //     .style("stroke-dasharray", "3,3")
+            //     .style("opacity", 0.5)
+            //     .attr("y1", function (d) { return y(d.value) + rScale(d.value) })
+            //     .attr("y2", height)
+            //     .attr("x1", function (d) { return x(d.offset) + x(d.duration / 2) })
+            //     .attr("x2", function (d) { return x(d.offset) + x(d.duration / 2) })
+
+            // // // hor lines
+            // svg.selectAll("hline")
+            //     .data(vm.globalData)
+            //     .enter().append("line")
+            //     .attr("class", "x")
+            //     .style("stroke", "blue")
+            //     //.style("stroke-dasharray", "2,2")
+            //     .style('stroke-width', '3')
+            //     .style("opacity", 0.5)
+            //     .attr("y1", height)
+            //     .attr("y2", height)
+            //     .attr("x1", function (d) { return x(d.offset); })
+            //     .attr("x2", function (d) { return x(d.offset) + x(d.duration); })
+            //     .on('click', onClickBubble)
+
+            // draw bubbles
+            svg.append('g').selectAll("circle")
+                .data(vm.globalData)
+                .enter().append("svg:circle")
+                .style('fill', function (d) {
+                    return 'red'//_.find(vm.options, { key: d.key }).color;
+                })
+                .attr("r", function (d) {
+                    return rScale(d.value)
+                })
+                .attr("cx", function (d) {
+                    return x(d.offset) //+ x(d.duration / 2);
+                })
+                .attr("cy", function (d) {
+                    $log.info('d============', d);
+
+                    return y(d.value);
+                })
+
+            svg.selectAll("circle")
+                .on('click', onClickBubble)
+
+            // svg.selectAll(".bubble")
+            //     .on('mouseover', onClickBubble)
+        }
+
+        function onClickBubble(d, i) {
+            $log.info('d======== click', d);
+
+            // play the corresponding audio segment
+            // ------------------------------------
+            vm.playSegment(d.offset / 1000, (d.offset + d.duration) / 1000);
+
+            // display screenshots
+            // 1. get the screenshots 
+            vm.screenshotBag = vm.videoMetaData[d.x];
+            vm.screenshotBag = _.map(vm.screenshotBag, function (object) {
+                return { key: propPaisWiseArgmaxFilter(object.scores)[0], score: propPaisWiseArgmaxFilter(object.scores)[1], screenshot: object.screenshot }
+            });
+
+            // 2. check whether the the segment is positive or negative
+            // set the color for the audio specter
+            if (d.key == 'negative') {
+                vm.colorNegative = 0;
+            } else {
+                vm.colorNegative = 1
+            }
+
+            // 3. keep only the the image belonging the segment classification
+            if (vm.colorNegative == 0) {
+                vm.screenshotBag = _.filter(vm.screenshotBag, function (item) {
+                    return _.indexOf(negativeEmotions, item.key.toLowerCase()) !== -1 ? true : false;
+                })
+            } else {
+                vm.screenshotBag = _.filter(vm.screenshotBag, function (item) {
+                    return _.indexOf(positiveEmotions, item.key.toLowerCase()) !== -1 ? true : false;
+                })
+            }
+
+            // 4. put images into carousel #screenshotGallery
+            d3.select("#screenshotGallery").selectAll('.bx-wrapper').remove();
+
+            $log.info('vm.screenshotBag', vm.screenshotBag);
+
+            var item = d3.select("#screenshotGallery")
+                .append('div')
+                .attr('class', 'slider-carousel')
+                .selectAll('.slide')
+                .data(vm.screenshotBag);
+
+            item.enter().append('div')
+                .attr('class', 'slide')
+
+
+            item.exit().remove();
+
+            item.selectAll('.picture')
+                .data(function (d) { return [d]; })
+                .enter().append('img')
+                //.attr('height', '120px')
+                //.attr('width', '120px')
+                .attr('src', function (d) { return './data/imageDir/' + d.screenshot.replace('-cropped', ''); });
+
+            item.selectAll('.picture-info')
+                .data(function (d) { return [d]; })
+                .enter().append('span')
+                .attr('class', 'item-text')
+                .text(function (d) {
+                    return capitalizeFilter(d.key) + ': ' + roundFilter(d.score * 100) + '%';
+                })
+
+            $(document).ready(function () {
+                let slider = $('.slider-carousel').bxSlider({
+                    //slideWidth: 100,
+                    minSlides: 2,
+                    maxSlides: 6,
+                    slideMargin: 10,
+                    //preloadImages: 'all',
+                    touchEnabled: false
+                });
+                slider.reloadSlider();
+            });
+        }
+
+    }
+
+})
+
+
+directives.directive('emotionalTimeLineChart', function () {
+    return {
+        restricted: 'E',
+        controller: emotionalTimeLineController,
+        //templateUrl: 'emotionalTimeLineChart.view.html',
+        bindToController: true,
+        controllerAs: 'vm',
+        scope: {
+            data: '=',
+            options: '=',
+            videoTpData: '=',
+            videoTnData: '=',
+            audioMetaData: '=',
+            videoMetaData: '=',
+            onClickHandler: '=',
+            onMouseenterHandler: '='
+        }
+    };
+
+    function emotionalTimeLineController($scope, $element, $log, timeToStrFilter, $interval, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
+        let vm = this;
+        vm.globalData = [];
+
+        $scope.$watch('vm.videoTpData + vm.videoTnData', function () {
+            vm.globalData = [];
+            _.forEach(vm.videoTpData, function (item) {
+                vm.globalData.push({
+                    x: item.x,
+                    key: 'positive',
+                    value: item.positive,
+                    offset: vm.audioMetaData[item.x].offset,
+                    duration: vm.audioMetaData[item.x].duration
+                })
+            });
+
+            _.forEach(vm.videoTnData, function (item) {
+                vm.globalData.push({
+                    x: item.x,
+                    key: 'negative',
+                    value: item.negative,
+                    offset: vm.audioMetaData[item.x].offset,
+                    duration: vm.audioMetaData[item.x].duration
+                })
+            });
+
+            // update chart
+            updateEmotionalTimeLineChart()
+        });
+
+        var margin = { top: 20, right: 30, bottom: 20, left: 30 },
+            width = 1000 - margin.left - margin.right,
+            height = 180 - margin.top - margin.bottom;
+
+        // y scale
+        var y = d3.scale.linear()
+            .domain([0, 100])
+            .range([height, 0]);
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+
+        var rScale = d3.scale.linear()
+            .range([2, 7]);
+
+        // x axis
+        var x = d3.time.scale()
+            .domain([0, 47 * 60 * 1000])
+            .range([0, width]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .ticks(d3.time.minute, 10)
+            .tickFormat(d3.time.format('%M:%S'));
+
+        // here the main svg
+        var svg = d3.select($element[0])
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr('class', 'g_main')
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // adding axis x & y the svg
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 3)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Score");
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+            .append("text")
+            .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+            .attr("transform", "translate(" + (width - margin.right) + "," + -2 + ")")  // centre below axis
+            .text("Time (min)");
+
+
+        function updateEmotionalTimeLineChart() {
+
+            rScale.domain([0, d3.max(vm.globalData, function (d) { return d.value; })])
+            svg.selectAll("line").remove()
+            svg.selectAll("circle").remove()
+
+            // draw 
+            // ver lines
+            svg.selectAll("vline")
+                .data(vm.globalData)
+                .enter().append("line")
+                .attr("class", "line")
+                .style("stroke", "blue")
+                .style("stroke-dasharray", "3,3")
+                .style("opacity", 0.5)
+                .attr("y1", function (d) { return y(d.value) + rScale(d.value) })
+                .attr("y2", height)
+                .attr("x1", function (d) { return x(d.offset) + x(d.duration / 2) })
+                .attr("x2", function (d) { return x(d.offset) + x(d.duration / 2) })
+                .on('mouseover', onClickBubble)
+            // // // hor lines
+            svg.selectAll("hline")
+                .data(vm.globalData)
+                .enter().append("line")
+                .attr("class", "line")
+                .style("stroke", "blue")
+                //.style("stroke-dasharray", "2,2")
+                .style('stroke-width', '3')
+                .style("opacity", 0.5)
+                .attr("y1", height)
+                .attr("y2", height)
+                .attr("x1", function (d) { return x(d.offset); })
+                .attr("x2", function (d) { return x(d.offset) + x(d.duration); })
+            //.on('click', onClickBubble)
+
+            // draw bubbles
+            svg.selectAll("circle")
+                .data(vm.globalData)
+                .enter().append("circle")
+                .attr("class", "dot")
+                .style('fill', function (d) {
+                    return _.find(vm.options, { key: d.key }).color;
+                })
+                .attr("r", function (d) {
+                    return rScale(d.value)
+                })
+                .attr("cx", function (d) {
+                    return x(d.offset) + x(d.duration / 2);
+                })
+                .attr("cy", function (d) {
+                    return y(d.value);
+                })
+
+                // attaching events 
+                .on('click', onClickBubble)
+                .on('mouseenter', onMouseenterBubble)
+
+        }
+
+        let positiveEmotions = ['happiness', 'surprise'];
+        let negativeEmotions = ['sadness', 'disgust', 'contempt', 'fear', 'anger'];
+        // on mouseenter
+        function onMouseenterBubble(d, i) {
+            // 1. get the screenshots 
+            vm.screenshotBag = vm.videoMetaData[d.x];
+            vm.screenshotBag = _.map(vm.screenshotBag, function (object) {
+                return { key: propPaisWiseArgmaxFilter(object.scores)[0], score: propPaisWiseArgmaxFilter(object.scores)[1], screenshot: object.screenshot }
+            });
+
+            // 2. keep only the the image belonging the segment classification
+            if (d.key == 'positive') {
+                vm.screenshotBag = _.filter(vm.screenshotBag, function (item) {
+                    return _.indexOf(positiveEmotions, item.key.toLowerCase()) !== -1 ? true : false;
+                });
+            } else {
+                vm.screenshotBag = _.filter(vm.screenshotBag, function (item) {
+                    return _.indexOf(negativeEmotions, item.key.toLowerCase()) !== -1 ? true : false;
+                });
+            }
+
+            if (vm.onMouseenterHandler) {
+                vm.onMouseenterHandler(d, vm.screenshotBag);
+            }
+        }
+
+        // on click
+        function onClickBubble(d, i) {
+
+            if (vm.onClickHandler) {
+                vm.onClickHandler(d);
+            }
+        }
+    }
+})
+
+directives.directive('lineChart', function () {
+    return {
+        restricted: 'E',
+        controller: emotionalTimeLineController,
+        bindToController: true,
+        controllerAs: 'vm',
+        scope: {
+            data: '=',
+            options: '=',
+            videoTimeSeries: '=',
+            videoTnData: '=',
+            audioMetaData: '=',
+            videoMetaData: '='
+
+        }
+    };
+
+    function emotionalTimeLineController($scope, $element, $log, timeToStrFilter, $interval, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
+        let vm = this;
+        vm.globalData = [];
+
+        $scope.$watch('vm.videoTpData + vm.videoTnData', function () {
+            vm.globalData = [];
+            _.forEach(vm.videoTpData, function (item) {
+                vm.globalData.push({
+                    x: item.x,
+                    key: 'positive',
+                    value: item.positive,
+                    offset: vm.audioMetaData[item.x].offset,
+                    duration: vm.audioMetaData[item.x].duration
+                })
+            });
+
+            _.forEach(vm.videoTnData, function (item) {
+                vm.globalData.push({
+                    x: item.x,
+                    key: 'negative',
+                    value: item.negative,
+                    offset: vm.audioMetaData[item.x].offset,
+                    duration: vm.audioMetaData[item.x].duration
+                })
+            });
+
+            // update chart
+            updateEmotionalTimeLineChart()
+        });
+
+        var margin = { top: 20, right: 30, bottom: 20, left: 30 },
+            width = 180 - margin.left - margin.right,
+            height = 150 - margin.top - margin.bottom;
+
+        // y scale
+        var y = d3.scale.linear()
+            .domain([0, 100])
+            .range([height, 0]);
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+
+        var rScale = d3.scale.linear()
+            .range([2, 7]);
+
+        // x axis
+        var x = d3.time.scale()
+            .domain([0, 47 * 60 * 1000])
+            .range([0, width]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .ticks(d3.time.minute, 10)
+            .tickFormat(d3.time.format('%M:%S'));
+
+        // here the main svg
+        var svg = d3.select($element[0])
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr('class', 'g_main')
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // adding axis x & y the svg
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 3)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Score");
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+            .append("text")
+            .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+            .attr("transform", "translate(" + (width - margin.right) + "," + -2 + ")")  // centre below axis
+            .text("Time (min)");
+
+
+        function updateEmotionalTimeLineChart() {
+
+            rScale.domain([0, d3.max(vm.globalData, function (d) { return d.value; })])
+            svg.selectAll("line").remove()
+            svg.selectAll("circle").remove()
+
+            // draw 
+            // ver lines
+            svg.selectAll("vline")
+                .data(vm.globalData)
+                .enter().append("line")
+                .attr("class", "line")
+                .style("stroke", "blue")
+                .style("stroke-dasharray", "3,3")
+                .style("opacity", 0.5)
+                .attr("y1", function (d) { return y(d.value) + rScale(d.value) })
+                .attr("y2", height)
+                .attr("x1", function (d) { return x(d.offset) + x(d.duration / 2) })
+                .attr("x2", function (d) { return x(d.offset) + x(d.duration / 2) })
+                .on('mouseover', onClickBubble)
+            // // // hor lines
+            svg.selectAll("hline")
+                .data(vm.globalData)
+                .enter().append("line")
+                .attr("class", "line")
+                .style("stroke", "blue")
+                //.style("stroke-dasharray", "2,2")
+                .style('stroke-width', '3')
+                .style("opacity", 0.5)
+                .attr("y1", height)
+                .attr("y2", height)
+                .attr("x1", function (d) { return x(d.offset); })
+                .attr("x2", function (d) { return x(d.offset) + x(d.duration); })
+            //.on('click', onClickBubble)
+
+            // draw bubbles
+            svg.selectAll("circle")
+                .data(vm.globalData)
+                .enter().append("circle")
+                .attr("class", "dot")
+                .style('fill', function (d) {
+                    return _.find(vm.options, { key: d.key }).color;
+                })
+                .attr("r", function (d) {
+                    return rScale(d.value)
+                })
+                .attr("cx", function (d) {
+                    return x(d.offset) + x(d.duration / 2);
+                })
+                .attr("cy", function (d) {
+                    return y(d.value);
+                })
+
+                // attaching events 
+                .on('click', onClickBubble)
+                .on('mouseenter', onMouseenterBubble)
+
+        }
+
+        let positiveEmotions = ['happiness', 'surprise'];
+        let negativeEmotions = ['sadness', 'disgust', 'contempt', 'fear', 'anger'];
+        // on mouseenter
+        function onMouseenterBubble(d, i) {
+            // 1. get the screenshots 
+            vm.screenshotBag = vm.videoMetaData[d.x];
+            vm.screenshotBag = _.map(vm.screenshotBag, function (object) {
+                return { key: propPaisWiseArgmaxFilter(object.scores)[0], score: propPaisWiseArgmaxFilter(object.scores)[1], screenshot: object.screenshot }
+            });
+
+            // 2. keep only the the image belonging the segment classification
+            if (d.key == 'positive') {
+                vm.screenshotBag = _.filter(vm.screenshotBag, function (item) {
+                    return _.indexOf(positiveEmotions, item.key.toLowerCase()) !== -1 ? true : false;
+                });
+            } else {
+                vm.screenshotBag = _.filter(vm.screenshotBag, function (item) {
+                    return _.indexOf(negativeEmotions, item.key.toLowerCase()) !== -1 ? true : false;
+                });
+            }
+
+            if (vm.onMouseenterHandler) {
+                vm.onMouseenterHandler(d, vm.screenshotBag);
+            }
+        }
+
+        // on click
+        function onClickBubble(d, i) {
+
+            if (vm.onClickHandler) {
+                vm.onClickHandler(d);
+            }
+        }
+    }
+})
+
+
+directives.directive('emotionalTimeLinePlayerChart', function () {
+    return {
+        restricted: 'E',
+        controller: emotionalTimeLinePlayerChartController,
+        templateUrl: 'emotionalTimeLinePlayerChart.view.html',
+        bindToController: true,
+        controllerAs: 'vm',
+        scope: {
+            data: '=',
+            options: '='
+        }
+    };
+
+    function emotionalTimeLinePlayerChartController($scope, $element, $log, timeToStrFilter, $interval, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
+        let vm = this;
+        let audio = document.getElementById('audioElement');
+        $scope.$watch('vm.data', function () {
+            $log.info('palyerrrrrr watch', vm);
+
+            // update chart
+            if (_.size(vm.data)) {
+                vm.playSegment(Number(vm.data.offset) / 1000, (Number(vm.data.offset) + Number(vm.data.duration)) / 1000)
+            }
+
+        }, true);
+
+        // -----------------------
+        // audio controlling
+        // -----------------------
         var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         var audioElement = document.getElementById('audioElement');
         var audioSrc = audioCtx.createMediaElementSource(audioElement);
@@ -978,22 +2126,22 @@ directives.directive('multiBarChart', function () {
 
         var frequencyData = new Uint8Array(200);
 
-        var svgHeight = '300';
-        var svgWidth = '960';
+        var svgHeight = '50';
+        var svgWidth = '500';
         var barPadding = '1';
         let colorMapPositive = d3.interpolateRgb(d3.rgb('#DCEDC8'), d3.rgb('#33691E'));
         let colorMapNegative = d3.interpolateRgb(d3.rgb('#F8BBD0'), d3.rgb('#880E4F'));
 
-
-        // Create our initial D3 chart.
+        // adding d3 bar chart
         d3.select('#audioBarChat').selectAll('rect')
             .data(frequencyData)
             .enter()
             .append('rect')
             .attr('x', function (d, i) {
-                return i * (width / frequencyData.length);
+                return i * (svgWidth / frequencyData.length);
             })
-            .attr('width', width / frequencyData.length - barPadding);
+            .attr('width', svgWidth / frequencyData.length - barPadding)
+            .attr('height', svgHeight);
 
         // Continuously loop and update chart with frequency data.
         function renderChart() {
@@ -1006,15 +2154,14 @@ directives.directive('multiBarChart', function () {
             d3.select('#audioBarChat').selectAll('rect')
                 .data(frequencyData)
                 .attr('y', function (d) {
-                    return svgHeight - d;
+                    return svgHeight - scale0255To100Filter(d);
                 })
                 .attr('height', function (d) {
                     return d;
                 })
                 .attr('fill', function (d) {
-                    //$log.info('$scope.colorNegative', $scope.colorNegative);
 
-                    if ($scope.colorNegative == 1) {
+                    if (vm.data.key === 'negative') {
                         return colorMapNegative(scale0255Filter(d));
                     } else {
                         return colorMapPositive(scale0255Filter(d));
@@ -1026,379 +2173,249 @@ directives.directive('multiBarChart', function () {
         // Run the loop
         renderChart();
 
-        let audio = document.getElementById('audioElement');
-        $scope.play = function () {
+        vm.play = function () {
             audio.currentTime = 20.0;
             audio.play();
         }
-
-        $scope.pause = function () {
+        let audioTimeupdateListener
+        vm.pause = function () {
             audio.pause();
+            // audio.removeEventListener('timeupdate', audioTimeupdateListener);
         }
 
-        $scope.upVolume = function () {
+        vm.upVolume = function () {
             audio.volume += 0.1;
         }
 
-        $scope.downVolume = function () {
+        vm.downVolume = function () {
             audio.volume -= 0.1;
         }
 
-        $scope.resume = function () {
+        vm.resume = function () {
             audio.play();
         }
 
-        let segmentEnd;
-        audio.addEventListener('timeupdate', function () {
-            if (segmentEnd && audio.currentTime >= segmentEnd) {
-                audio.pause();
-            }
-            console.log(audio.currentTime);
-        }, false);
+        let segmentEnd = null;
+        vm.playSegment = function (startTime, endTime) {
+            $log.info('playSegment', startTime, endTime);
 
-        $scope.playSegment = function (startTime, endTime) {
             segmentEnd = endTime;
             audio.currentTime = startTime;
             audio.play();
+
+            audio.addEventListener('timeupdate', function () {
+                if (segmentEnd && audio.currentTime >= segmentEnd) {
+                    vm.pause();
+                }
+            }, false);
         }
-
-        function updateMultiBarchart(n, m, ticksVals, cfgdKeysCrspdngData, chartOptions) {
-            x0.domain(d3.range(n));
-            x1.domain(d3.range(m))
-                .rangeBands([0, x0.rangeBand()]);
-
-            xAxis.tickValues(ticksVals);
-
-            svg.selectAll("rect").transition().remove();
-
-            d3.select(".x")
-                .transition()
-                .call(xAxis);
-
-            let positiveEmotions = ['happiness', 'surprise'];
-            let negativeEmotions = ['sadness', 'disgust', 'contempt', 'fear', 'anger'];
-
-            svg.append("g").selectAll("g")
-                .data(cfgdKeysCrspdngData)
-                .enter().append("g")
-                .style("fill", function (d, i) {
-                    return chartOptions[i].color;
-                })
-                .attr("transform", function (d, i) { return "translate(" + x1(i) + ",0)"; })
-                .selectAll("rect")
-                .data(function (d, i) {
-                    return d;
-                })
-                .enter().append("rect")
-                .attr("width", x1.rangeBand())
-                .attr("height", function (d) {
-                    return height - y(d)
-                })
-                .attr("x", function (d, i) { return x0(i); })
-                .attr("y", function (d) { return y(d); })
-                .on('click', function (d, i) {
-
-                    // get the screenshots 
-                    let screenshotBag = $scope.metaDataOne[i];
-                    screenshotBag = _.map(screenshotBag, function (object) {
-                        return { key: propPaisWiseArgmaxFilter(object.scores)[0], score: propPaisWiseArgmaxFilter(object.scores)[1], screenshot: object.screenshot }
-                    });
-
-                    // check whether the the segment is positive or negative
-                    // set the color for the audio specter
-                    if (_.indexOf(_.pluck($scope.metaDataThree, 'x'), $scope.data[i].x) == -1) {
-                        $scope.colorNegative = 0;
-                    } else {
-                        $scope.colorNegative = 1
-                    }
-
-                    $log.info('clicking =====', screenshotBag, $scope.colorNegative);
-
-                    // keep only the the image belonging the segment classification
-                    if ($scope.colorNegative == 1) {
-                        screenshotBag = _.filter(screenshotBag, function (item) {
-                            return _.indexOf(negativeEmotions, item.key.toLowerCase()) !== -1 ? true : false;
-                        })
-                    } else {
-                        screenshotBag = _.filter(screenshotBag, function (item) {
-                            return _.indexOf(positiveEmotions, item.key.toLowerCase()) !== -1 ? true : false;
-                        })
-                    }
-                    // play the corresponding audio segment
-                    $scope.playSegment($scope.metaDataTwo[i].offset / 1000, ($scope.metaDataTwo[i].offset + $scope.metaDataTwo[i].duration) / 1000);
-
-
-                    $log.info('clicked', d, screenshotBag);
-
-                    d3.select("#screenshotGallery").selectAll('.owl-carousel').remove();
-
-                    var item = d3.select("#screenshotGallery").append('div')
-                        .attr('class', 'owl-carousel owl-theme')
-                        .attr('id', 'owl-demo')
-                        .selectAll('.item')
-                        .data(screenshotBag);
-
-                    item.enter().append('div')
-                        .attr('class', 'item')
-
-
-                    item.exit().remove();
-
-                    item.selectAll('.picture')
-                        .data(function (d) { return [d]; })
-                        .enter().append('img')
-                        .attr('src', function (d) { return './data/imageDir/' + d.screenshot.replace('-cropped', ''); });
-
-                    item.selectAll('.picture-info')
-                        .data(function (d) { return [d]; })
-                        .enter().append('p')
-                        .attr('class', 'item-text')
-                        .text(function (d) {
-                            return capitalizeFilter(d.key) + ': ' + roundFilter(d.score * 100);
-                        })
-
-                    $(document).ready(function () {
-
-                        $("#owl-demo").owlCarousel({
-                            //autoPlay: 3000, //Set AutoPlay to 3 seconds
-                            //items: 4
-                            //itemsDesktop: [1199, 3],
-                            //itemsDesktopSmall: [979, 3]
-                        });
-
-                    });
-
-                    //$log.info('============== d $$', $scope.data[i], _.indexOf(_.pluck($scope.metaDataThree, 'x'), $scope.data[i].x) == -1);
-
-
-
-                })
-                .on('mouseover', function (d, i) {
-
-
-                })
-                .on('mouseout', function () {
-                    // d3.select($element[0]).selectAll('.gallery').remove();
-                    //svg.selectAll('.link').remove();
-                })
-
-
-
-            function displayScreenshots() {
-
-                var icon_source = "./test3.jpg";
-                var links = [
-                    { source: ":)", target: "target", icon: icon_source },
-                    { source: ":D", target: "target", icon: icon_source },
-                    { source: ":(", target: "target", icon: icon_source },
-                    { source: ":X", target: "target", icon: icon_source },
-                    { source: ":]", target: "target", icon: icon_source }
-                ];
-
-                var nodes = {};
-
-                // Compute the distinct nodes from the links.
-                links.forEach(function (link) {
-                    link.source = nodes[link.source] || (nodes[link.source] = { name: link.source, icon: link.icon });
-                    link.target = nodes[link.target] || (nodes[link.target] = { name: link.target, icon: link.icon });
-                });
-
-                var force = d3.layout.force()
-                    .nodes(d3.values(nodes))
-                    .links(links)
-                    .size([width, height])
-                    .linkDistance(180)
-                    .charge(-700)
-                    .on("tick", tick)
-                    .start();
-
-                var link = svg.selectAll(".link")
-                    .data(force.links())
-                    .enter().append("line")
-                    .attr("class", "link");
-
-                var node = svg.selectAll(".node")
-                    .data(force.nodes())
-                    .enter().append("g")
-                    .attr("class", "node")
-                    .on("mouseenter", mouseenter)
-                    .on("mouseleave", mouseleave)
-                    .call(force.drag);
-
-                node.append("image")
-                    .attr("xlink:href", function (d) { return d.icon; })
-                    .attr("x", "-12px")
-                    .attr("y", "-12px")
-                    .attr("width", "80")
-                    .attr("height", "80");
-
-                node.append("text")
-                    .attr("x", 32)
-                    .attr("dy", ".35em")
-                    .text(function (d) { return d.name; });
-
-                function tick() {
-                    link
-                        .attr("x1", function (d) { return d.source.x; })
-                        .attr("y1", function (d) { return d.source.y; })
-                        .attr("x2", function (d) { return d.target.x; })
-                        .attr("y2", function (d) { return d.target.y; });
-
-                    node
-                        .attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
-                }
-
-                function mouseover() {
-                    d3.select(this).select("circle").transition()
-                        .duration(750)
-                        .attr("r", 16);
-                }
-
-                function mouseout() {
-                    d3.select(this).select("circle").transition()
-                        .duration(750)
-                        .attr("r", 8);
-                }
-
-                function mouseenter() {
-                    // select element in current context
-                    $log.info('mouseenter', this);
-
-                    d3.select(this)
-                        .select('image')
-                        .transition()
-                        .attr("x", function (d) { return -60; })
-                        .attr("y", function (d) { return -60; })
-                        .attr("width", 100)
-                        .attr("height", 100);
-                }
-
-                function mouseleave() {
-                    d3.select(this)
-                        .select('image')
-                        .transition()
-                        .attr("x", function (d) { return -25; })
-                        .attr("y", function (d) { return -25; })
-                        .attr("height", 36)
-                        .attr("width", 36);
-                }
-            }
-
-        }
-
     }
+
 })
 
-directives.directive('webAudioApi', function () {
+
+directives.directive('emotionalTimeLineImagesCarousel', function () {
     return {
         restricted: 'E',
-        controller: webAudioApiController,
-        templateUrl: 'web-audio-api.view.html'
-    }
-
-    function webAudioApiController($scope, $element, $log, scale0255Filter) {
-        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        var audioElement = document.getElementById('audioElement');
-        var audioSrc = audioCtx.createMediaElementSource(audioElement);
-        var analyser = audioCtx.createAnalyser();
-
-        // Bind our analyser to the media element source.
-        audioSrc.connect(analyser);
-        audioSrc.connect(audioCtx.destination);
-
-
-        var frequencyData = new Uint8Array(200);
-
-        var svgHeight = '300';
-        var svgWidth = '1200';
-        var barPadding = '1';
-
-        function createSvg(parent, height, width) {
-            return d3.select(parent).append('svg').attr('height', height).attr('width', width);
+        controller: emotionalTimeLineImagesCarouselController,
+        templateUrl: 'emotionalTimeLineImagesCarousel.view.html',
+        bindToController: true,
+        controllerAs: 'vm',
+        scope: {
+            data: '=',
+            options: '='
         }
+    };
 
-        var svg = createSvg($element[0], svgHeight, svgWidth);
-
-        // Create our initial D3 chart.
-        svg.selectAll('rect')
-            .data(frequencyData)
-            .enter()
-            .append('rect')
-            .attr('x', function (d, i) {
-                return i * (svgWidth / frequencyData.length);
-            })
-            .attr('width', svgWidth / frequencyData.length - barPadding);
-
-        // Continuously loop and update chart with frequency data.
-        function renderChart() {
-            requestAnimationFrame(renderChart);
-
-            // Copy frequency data to frequencyData array.
-            analyser.getByteFrequencyData(frequencyData);
-
-            let colorMapPositive = d3.interpolateRgb(d3.rgb('#DCEDC8'), d3.rgb('#33691E'));
-            let colorMapNegative = d3.interpolateRgb(d3.rgb('#F8BBD0'), d3.rgb('#880E4F'));
-
-            $log.info('colorMapPositive', colorMapPositive);
-
-            // Update d3 chart with new data.
-            svg.selectAll('rect')
-                .data(frequencyData)
-                .attr('y', function (d) {
-                    return svgHeight - d;
-                })
-                .attr('height', function (d) {
-                    return d;
-                })
-                .attr('fill', function (d) {
-                    $log.info('d=========', d);
-
-                    return colorMapPositive(scale0255Filter(d));
-                });
-        }
-
-        // Run the loop
-        renderChart();
-
-        analyser.fftSize = 2048;
-        var tailleMemoireTampon = analyser.frequencyBinCount;
-        var tableauDonnees = new Uint8Array(tailleMemoireTampon);
-        var audioData = analyser.getByteTimeDomainData(tableauDonnees);
-        $log.info('tableauDonnees', audioData);
-
-
-        // dessine un oscilloscope de la source audio
-
+    function emotionalTimeLineImagesCarouselController($scope, $element, $log, timeToStrFilter, $interval, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
+        let vm = this;
         let audio = document.getElementById('audioElement');
-        $scope.play = function () {
-            audio.currentTime = 20.0;
-            audio.play();
-        }
+        $scope.$watch('vm.data', function () {
+            $log.info('carousel watch', vm);
 
-        $scope.pause = function () {
-            audio.pause();
-        }
-
-        $scope.upVolume = function () {
-            audio.volume += 0.1;
-        }
-
-        $scope.downVolume = function () {
-            audio.volume -= 0.1;
-        }
-
-        let segmentEnd;
-        audio.addEventListener('timeupdate', function () {
-            if (segmentEnd && audio.currentTime >= segmentEnd) {
-                audio.pause();
+            // update chart
+            if (_.size(vm.data) === 0) {
+                return
             }
-            console.log(audio.currentTime);
-        }, false);
 
-        $scope.playSegment = function (startTime, endTime) {
-            segmentEnd = endTime;
-            audio.currentTime = startTime;
-            audio.play();
-        }
+            // 4. put images into carousel #screenshotGallery
+            d3.select("#screenshotGallery").selectAll('.bx-wrapper').remove();
+
+            $log.info('vm.data', vm.data);
+
+            var item = d3.select("#screenshotGallery")
+                .append('div')
+                .attr('class', 'slider-carousel')
+                .selectAll('.slide')
+                .data(vm.data);
+
+            item.enter().append('div')
+                .attr('class', 'slide')
+
+
+            item.exit().remove();
+
+            item.selectAll('.picture')
+                .data(function (d) { return [d]; })
+                .enter().append('img')
+                .attr('src', function (d) { return './data/imageDir/' + d.screenshot.replace('-cropped', ''); });
+
+            item.selectAll('.picture-info')
+                .data(function (d) { return [d]; })
+                .enter().append('span')
+                .attr('class', 'item-text')
+                .text(function (d) {
+                    return capitalizeFilter(d.key) + ': ' + roundFilter(d.score * 100) + '%';
+                })
+
+            $(document).ready(function () {
+                let slider = $('.slider-carousel').bxSlider({
+                    slideWidth: 200,
+                    minSlides: 2,
+                    maxSlides: 5,
+                    slideMargin: 10,
+                    //preloadImages: 'all',
+                    touchEnabled: false
+                });
+                slider.reloadSlider();
+            });
+
+        }, true);
     }
-});
+
+})
+
+
+
+// directives.directive('scatter', function () {
+//     return {
+//         restricted: 'E',
+//         controller: scatterController
+//     };
+
+//     function scatterController($scope, $element) {
+//         var margin = { top: 20, right: 20, bottom: 30, left: 40 },
+//             width = 960 - margin.left - margin.right,
+//             height = 500 - margin.top - margin.bottom;
+
+//         /* 
+//          * value accessor - returns the value to encode for a given data object.
+//          * scale - maps value to a visual display encoding, such as a pixel position.
+//          * map function - maps from data value to display value
+//          * axis - sets up axis
+//          */
+
+//         // setup x 
+//         var xValue = function (d) { return d.Calories; }, // data -> value
+//             xScale = d3.scale.linear().range([0, width]), // value -> display
+//             xMap = function (d) { return xScale(xValue(d)); }, // data -> display
+//             xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+
+//         // setup y
+//         var yValue = function (d) { return d["Protein (g)"]; }, // data -> value
+//             yScale = d3.scale.linear().range([height, 0]), // value -> display
+//             yMap = function (d) { return yScale(yValue(d)); }, // data -> display
+//             yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+//         // setup fill color
+//         var cValue = function (d) { return d.Manufacturer; },
+//             color = d3.scale.category10();
+
+//         // add the graph canvas to the body of the webpage
+//         var svg = d3.select($element[0]).append("svg")
+//             .attr("width", width + margin.left + margin.right)
+//             .attr("height", height + margin.top + margin.bottom)
+//             .append("g")
+//             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+//         // add the tooltip area to the webpage
+//         var tooltip = d3.select("body").append("div")
+//             .attr("class", "tooltip")
+//             .style("opacity", 0);
+
+//         // load data
+//         d3.csv("./data/data.csv", function (error, data) {
+
+//             // change string (from CSV) into number format
+//             data.forEach(function (d) {
+//                 d.Calories = +d.Calories;
+//                 d["Protein (g)"] = +d["Protein (g)"];
+//                 //    console.log(d);
+//             });
+
+//             // don't want dots overlapping axis, so add in buffer to data domain
+//             xScale.domain([d3.min(data, xValue) - 1, d3.max(data, xValue) + 1]);
+//             yScale.domain([d3.min(data, yValue) - 1, d3.max(data, yValue) + 1]);
+
+//             // x-axis
+//             svg.append("g")
+//                 .attr("class", "x axis")
+//                 .attr("transform", "translate(0," + height + ")")
+//                 .call(xAxis)
+//                 .append("text")
+//                 .attr("class", "label")
+//                 .attr("x", width)
+//                 .attr("y", -6)
+//                 .style("text-anchor", "end")
+//                 .text("Calories");
+
+//             // y-axis
+//             svg.append("g")
+//                 .attr("class", "y axis")
+//                 .call(yAxis)
+//                 .append("text")
+//                 .attr("class", "label")
+//                 .attr("transform", "rotate(-90)")
+//                 .attr("y", 6)
+//                 .attr("dy", ".71em")
+//                 .style("text-anchor", "end")
+//                 .text("Protein (g)");
+
+//             // draw dots
+//             svg.selectAll(".dot")
+//                 .data(data)
+//                 .enter().append("circle")
+//                 .attr("class", "dot")
+//                 .attr("r", 3.5)
+//                 .attr("cx", xMap)
+//                 .attr("cy", yMap)
+//                 .style("fill", function (d) { return color(cValue(d)); })
+//                 .on("mouseover", function (d) {
+//                     tooltip.transition()
+//                         .duration(200)
+//                         .style("opacity", .9);
+//                     tooltip.html(d["Cereal Name"] + "<br/> (" + xValue(d)
+//                         + ", " + yValue(d) + ")")
+//                         .style("left", (d3.event.pageX + 5) + "px")
+//                         .style("top", (d3.event.pageY - 28) + "px");
+//                 })
+//                 .on("mouseout", function (d) {
+//                     tooltip.transition()
+//                         .duration(500)
+//                         .style("opacity", 0);
+//                 });
+
+//             // draw legend
+//             var legend = svg.selectAll(".legend")
+//                 .data(color.domain())
+//                 .enter().append("g")
+//                 .attr("class", "legend")
+//                 .attr("transform", function (d, i) { return "translate(0," + i * 20 + ")"; });
+
+//             // draw legend colored rectangles
+//             legend.append("rect")
+//                 .attr("x", width - 18)
+//                 .attr("width", 18)
+//                 .attr("height", 18)
+//                 .style("fill", color);
+
+//             // draw legend text
+//             legend.append("text")
+//                 .attr("x", width - 24)
+//                 .attr("y", 9)
+//                 .attr("dy", ".35em")
+//                 .style("text-anchor", "end")
+//                 .text(function (d) { return d; })
+//         });
+//     }
+// })

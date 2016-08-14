@@ -3,12 +3,12 @@
 let controllers = angular.module('controllers.client', []);
 
 // controller definition goes here
-function MainCtrl($rootScope, $http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter, FileSaver, Blob,
+function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFilter, timeToStrFilter, FileSaver, Blob,
     valenceArousalAsAvgMaxPosMaxNegFilter, imageScoresWeightedMeanFilter, argmaxEmotionFilter,
     valenceArousalSegmentMeanFilter, valenceArousalSegmentDomEmotionWeightedMeanFilter,
     audioValenceArousalPosNegMapperFilter, emotionSumFilter, emotionSumGroupFilter, videoValenceArousalPosNegCombinerFilter,
     posNegNeuEmotionsFilter, keyPairWiseObjectArgmaxFilter, groupByPosNegNeuEmotionsFilter, groupByAllEmotionsFilter,
-    emotionSumWithRoundFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter) {
+    emotionSumWithRoundFilter, capitalizeFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter, roundFilter) {
 
     let vm = this;
 
@@ -29,6 +29,7 @@ function MainCtrl($rootScope, $http, $mdToast, $log, $interval, scaleFilter, tim
         dataset6VideoTimeSeriesAllEmotions: [],
         dataset7VideoTimeSeriesTNthreshold: [],
         dataset8VideoTimeSeriesTPthreshold: [],
+        dataset10VideoTimeSeriesTPTNthreshold: [],
         dataset9VideoTimeSeriesAllEmotionsInterestingPoints: []
     };
 
@@ -109,7 +110,7 @@ function MainCtrl($rootScope, $http, $mdToast, $log, $interval, scaleFilter, tim
 
     // apply filter
     this.applyFilter = function () {
-        this.chartData.push({ val0: 23, val1: 56, val3: 42, tickValue: 'tick1' })
+
         vm.activated = true;
 
         vm.audioVideoLineChartData = {
@@ -132,6 +133,9 @@ function MainCtrl($rootScope, $http, $mdToast, $log, $interval, scaleFilter, tim
         getVideoEmotionsByTimeSegment();
 
         vm.activated = false;
+
+        $log.info('audioVideoLineChartData', vm.audioVideoLineChartData);
+
     };
 
 
@@ -369,6 +373,7 @@ function MainCtrl($rootScope, $http, $mdToast, $log, $interval, scaleFilter, tim
             dataset6VideoTimeSeriesAllEmotions: screenshotsByAudioTimeSegmentMeanForEachEmotion,
             dataset7VideoTimeSeriesTNthreshold: tNthreshold,
             dataset8VideoTimeSeriesTPthreshold: tPthreshold,
+            dataset10VideoTimeSeriesTPTNthreshold: tPthreshold.concat(tNthreshold),
             dataset9VideoTimeSeriesAllEmotionsInterestingPoints: screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints
         };
 
@@ -1058,90 +1063,194 @@ function MainCtrl($rootScope, $http, $mdToast, $log, $interval, scaleFilter, tim
     }
 
 
-    this.chartData = [
-        { val0: 23, val1: 56, val3: 42, tickValue: 'tick1' },
-        { val0: 13, val1: 64, val3: 33, tickValue: 'tick2' },
-        { val0: 22, val1: 11, val3: 44, tickValue: 'tick3' },
-        { val0: 22, val1: 11, val3: 44, tickValue: 'tick4' },
-        { val0: 22, val1: 11, val3: 44, tickValue: 'tick4' },
-        { val0: 22, val1: 11, val3: 44, tickValue: 'tick4' },
-        { val0: 22, val1: 11, val3: 44, tickValue: 'tick4' }
-    ];
-    this.chartOptions = [
+    let margin = { top: 40, right: 40, bottom: 40, left: 40 },
+        width = Math.min(180, window.innerWidth - 10) - margin.left - margin.right - 10,
+        height = Math.min(width, window.innerHeight - margin.top - margin.bottom - 20);
+
+
+    this.radarChartOptions = {
+        w: width,
+        h: height,
+        margin: margin,
+        levels: 3,				//How many levels or inner circles should be drawn
+        maxValue: 0, 			//What is the value that the biggest circle will represent
+        labelFactor: 1.25, 	//How much farther than the radius of the outer circle should the labels be placed
+        wrapWidth: 60, 		//The number of pixels after which a label needs to be given a new line
+        opacityArea: 0.35, 	//The opacity of the area of the blob
+        dotRadius: 2, 			//The size of the colored circles of each blog
+        opacityCircles: 0.1, 	//The opacity of the circles of each blob
+        strokeWidth: 1, 		//The width of the stroke around each blob
+        roundStrokes: true,	//If true the area and stroke will follow a round path (cardinal-closed)
+        color: d3.scale.category10(),	//Color function
+        class: '.radarChart'
+    };
+
+
+    this.pieChartData = [];
+    this.options = [{ key: 'positive', color: 'green' }, { key: 'negative', color: 'red' }];
+    this.data = [
         {
-            axis: "y",
-            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
-            key: "fear",
-            label: "Fear",
-            color: "#9C27B0",
-            type: ['column'],
-            id: 'mySeriesFear'
-        },
-        {
-            axis: "y",
-            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
-            key: "anger",
-            label: "Anger",
-            color: "#E91E63",
-            type: ['column'],
-            id: 'mySerieAnger'
-        },
-        {
-            axis: "y",
-            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
-            key: "sadness",
-            label: "Sadness",
-            color: "#000000",
-            type: ['column'],
-            id: 'mySeriesSadness'
-        },
-        {
-            axis: "y",
-            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
-            key: "happiness",
-            label: "Happiness",
-            color: "#4CAF50",
-            type: ['column'],
-            id: 'mySeriesHappiness'
-        },
-        {
-            axis: "y",
-            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
-            key: "neutral",
-            label: "Neutral",
-            color: "#2196F3",
-            type: ['column'],
-            id: 'mySeriesNeutral'
-        },
-        {
-            axis: "y",
-            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
-            key: "contempt",
-            label: "Contempt",
-            color: "#009688",
-            type: ['column'],
-            id: 'mySeriesContempt'
-        },
-        {
-            axis: "y",
-            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
-            key: "disgust",
-            label: "Disgust",
-            color: "#5C5C5C",
-            type: ['column'],
-            id: 'mySeriesDisgust'
-        },
-        {
-            axis: "y",
-            dataset: "dataset9VideoTimeSeriesAllEmotionsInterestingPoints",
-            key: "surprise",
-            label: "Surprise",
-            color: "#FF9800",
-            type: ['column'],
-            id: 'mySeriesDisgust'
+            key: 'positive',
+            "offset": '110272',
+            "duration": '60000',
+            "label": "ok",
+            "value": "16"
+        }, {
+            key: 'negative',
+            "offset": '1200000',
+            "duration": '120000',
+            "label": "ok",
+            "value": "30"
+        }, {
+            key: 'positive',
+            "offset": '217272',
+            "duration": '90000',
+            "label": "ok",
+            "value": "100"
         }
     ];
 
+    vm.dataPlayer = {};
+    vm.screenshotsBag = [];
+    this.onClickEmotionalTimeLineChart = function (data) {
+        vm.dataPlayer = data;
+        $scope.$digest();
+    }
+
+    this.onMouseenterEmotionalTimeLineChart = function (data, screenshotsBag) {
+        vm.screenshotsBag = screenshotsBag;
+        let mouseCorrespondingData = _.find(vm.audioVideoLineChartData.dataset6VideoTimeSeriesAllEmotions, { x: data.x });
+        buildPieChartData(mouseCorrespondingData)
+        buildRadarChartData(mouseCorrespondingData);
+        builtBarChartDiscreteEmotionsData(mouseCorrespondingData);
+        builtBarChartValenceArousalData(data, vm.audioVideoLineChartData.dataset3AsAudio, vm.audioVideoLineChartData.dataset0AsVideoAvg);
+        $scope.$digest();
+    }
+
+    function buildRadarChartData(data) {
+        vm.radarChartData = _.map(_.omit(data, 'x'), function (val, key) {
+            return { axis: capitalizeFilter(key), value: roundFilter(val / 100) }
+        })
+    }
+
+    function totalReducer(total, n) {
+        return total + n;
+    }
+
+    function builtBarChartValenceArousalData(indexData, audioData, videoData) {
+        let audioSeg = audioData[indexData.x];
+        let videoSeg = videoData[indexData.x];
+        let size = _.size(audioData);
+        $log.info('video =', videoData);
+
+        vm.barChartValenceArousalData = [
+            { arousalAudio: videoSeg.arousal, valenceAudio: videoSeg.valence, arousalVideo: audioSeg.arousal, valenceVideo: audioSeg.valence },
+            { arousalAudio: _.reduce(_.pluck(videoData, 'arousal'), totalReducer) / size, valenceAudio: _.reduce(_.pluck(videoData, 'valence'), totalReducer) / size, arousalVideo: _.reduce(_.pluck(audioData, 'arousal'), totalReducer) / size, valenceVideo: _.reduce(_.pluck(audioData, 'valence'), totalReducer) / size }
+        ]
+        $log.info('barChartValenceArousalData', vm.barChartValenceArousalData);
+
+    }
+
+    function builtBarChartDiscreteEmotionsData(data) {
+        vm.barChartData = [_.omit(data, 'x'), _.omit(_.find(vm.audioVideoLineChartData.dataset4AsVideoEmotionsHisto, { x: 1 }), 'x')];
+    }
+
+    function buildPieChartData(data) {
+        let neutral = _.pick(data, ['neutral']);
+        let positive = _.pick(data, ['happiness', 'surprise']);
+        let negative = _.pick(data, ['sadness', 'disgust', 'contempt', 'fear', 'anger']);
+        positive = _.sum(_.values(positive));
+        negative = _.sum(_.values(negative));
+        vm.pieChartData = [
+            { label: "Neutral", value: roundFilter(_.get(neutral, 'neutral')), color: "#2196F3" },
+            { label: "Positive", value: roundFilter(positive), color: "#558B2F" },
+            { label: "Negative", value: roundFilter(negative), color: "#C62828" }
+        ];
+    }
+
+    this.barChartDiscreteEmotionsOptions = {
+        bars: [
+            {
+                axis: "y",
+                key: "fear",
+                label: "Fear",
+                color: "#9C27B0",
+            },
+            {
+                axis: "y",
+                key: "anger",
+                label: "Anger",
+                color: "#E91E63",
+            },
+            {
+                axis: "y",
+                key: "sadness",
+                label: "Sadness",
+                color: "#000000",
+            },
+            {
+                axis: "y",
+                key: "happiness",
+                label: "Happiness",
+                color: "#4CAF50",
+            },
+            {
+                axis: "y",
+                key: "neutral",
+                label: "Neutral",
+                color: "#2196F3",
+            },
+            {
+                axis: "y",
+                key: "contempt",
+                label: "Contempt",
+                color: "#009688",
+            },
+            {
+                axis: "y",
+                key: "disgust",
+                label: "Disgust",
+                color: "#5C5C5C",
+            },
+            {
+                axis: "y",
+                key: "surprise",
+                label: "Surprise",
+                color: "#FF9800",
+            }
+        ],
+        ticks: ['Video Seg.', 'Video Ses.']
+    };
+
+    this.barChartValenceArousalEmotionsOptions = {
+        bars: [
+            {
+                axis: "y",
+                key: "valenceAudio",
+                label: "A. Valence",
+                color: "#9C27B0",
+            },
+            {
+                axis: "y",
+                key: "arousalAudio",
+                label: "A. Arousal",
+                color: "#009688",
+            },
+            {
+                axis: "y",
+                key: "valenceVideo",
+                label: "V. Valence",
+                color: "#5C5C5C",
+            },
+            {
+                axis: "y",
+                key: "arousalVideo",
+                label: "V. Arousal",
+                color: "#FF9800",
+            }
+        ],
+        ticks: ['V./A. Seg.', 'V./A. Ses.']
+    };
 }
 
 

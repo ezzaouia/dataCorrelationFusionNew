@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html ng-app='myAPP'>
+
+<head>
+    <title>Data Correlation & fusion</title>
+
+    <!-- ngMaterial -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic">
+    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0-rc2/angular-material.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/angular-material-data-table/0.10.8/md-data-table.min.css"
+    />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/line-chart/2.0.27/LineChart.min.css" />
+    <link rel="stylesheet" href="styles.client.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.1.6/assets/owl.carousel.min.css">
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.transitions.min.css">-->
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bxslider/4.2.5/jquery.bxslider.min.css">
+</head>
+
+<body ng-controller="MainCtrl as main">
+
+    <md-toolbar>
+        <div class="md-toolbar-tools">
+            <h3>
+                <span>Emoviz Dashboard</span>
+            </h3>
+            <span flex></span>
+            <!-- session dropdown menu -->
+            <md-input-container>
+                <label>Session:</label>
+                <md-select ng-model="main.selectedSpSessions" md-on-close="">
+                    <md-optgroup label="spSessions:">
+                        <md-option ng-value="session" ng-repeat="session in main.spSessions">{{session}}</md-option>
+                    </md-optgroup>
+                </md-select>
+            </md-input-container>
+            <!-- apply filter button -->
+            <md-button class="md-raised" aria-label="" ng-click="main.applyFilter()">
+                Apply Filter
+            </md-button>
+        </div>
+    </md-toolbar>
+
+    <div id="progressCircle">
+        <md-progress-circular ng-hide="!main.activated" ng-disabled="!main.activated" class="md-hue-2" md-diameter="50px"></md-progress-circular>
+    </div>
+
+    <div class="dashboard">
+        <emotional-time-line-images-carousel data="main.screenshotsBag" options="main.options">
+        </emotional-time-line-images-carousel>
+
+        <div class="timeIntervalDetailsContainer">
+            <div class="element">
+                <multi-bar-chart data="main.barChartData" options="main.barChartDiscreteEmotionsOptions"></multi-bar-chart>
+            </div>
+            <div class="element">
+                <multi-bar-chart-new data="main.barChartValenceArousalData" options="main.barChartValenceArousalEmotionsOptions"></multi-bar-chart-new>
+            </div>
+            <div class="element">
+                <pie-chart-donut data="main.pieChartData"></pie-chart-donut>
+            </div>
+            <div class="element">
+                <radar-chart meta-data="main.radarChartData" data="main.radarChartData" options="main.radarChartOptions"></radar-chart>
+            </div>
+        </div>
+
+
+
+        <emotional-time-line-player-chart data="main.dataPlayer" options="main.options">
+        </emotional-time-line-player-chart>
+
+        <emotional-time-line-chart data="main.data" video-tp-data="main.audioVideoLineChartData.dataset8VideoTimeSeriesTPthreshold"
+            video-tn-data="main.audioVideoLineChartData.dataset7VideoTimeSeriesTNthreshold" options="main.options" audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments"
+            video-meta-data="main.screenshotsByAudioTimeSegment" on-click-handler="main.onClickEmotionalTimeLineChart" on-mouseenter-handler="main.onMouseenterEmotionalTimeLineChart">
+        </emotional-time-line-chart>
+
+    </div>
+
+
+    <!-- ng -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
+    <script data-require="angular.js@1.4.8" data-semver="1.4.8" src="https://code.angularjs.org/1.4.8/angular.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular-animate.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular-aria.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular-messages.min.js"></script>
+
+    <!-- ngMaterial -->
+    <script src="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0-rc2/angular-material.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/angular-material-icons/0.7.0/angular-material-icons.min.js"></script>
+
+    <script data-require="d3js@*" data-semver="3.5.14" src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/async/1.5.2/async.min.js"></script>
+    <script src="https://npmcdn.com/simple-statistics@2.0.0/dist/simple-statistics.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-material-data-table/0.10.8/md-data-table.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/line-chart/2.0.27/LineChart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pie-chart/1.0.0/pie-chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.14.1/moment.min.js"></script>
+
+    <script src="./node_modules/angular-file-saver/dist/angular-file-saver.bundle.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bxslider/4.2.5/jquery.bxslider.min.js"></script>
+    <script type="text/javascript" src="./lib/jquery.bxslider.js"></script>
+
+    <script src="./lib/radarChart.js"></script>
+    <!-- local lib -->
+    <script src="services.client.js"></script>
+    <script src="filters.client.js"></script>
+    <script src="directives.client.js"></script>
+    <script src="controllers.client.js"></script>
+    <script src="index.client.js"></script>
+
+</body>
+
+</html>
