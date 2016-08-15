@@ -415,6 +415,23 @@ filters.filter('keyPairWiseObjectArgmax', function () {
     };
 });
 
+
+filters.filter('keyPairWiseTopN', function () {
+    return function (object, n) {
+        var topN = _.map(object, function (value, key) {
+            return { key: key, value: value };
+        });
+        topN = _.sortByOrder(topN, 'value', ['desc']).slice(0, n);
+        topN = _.reduce(topN, function (result, object) {
+            result[object.key] = object.value;
+            return result
+        }, {});
+        return topN;
+    };
+});
+
+
+
 filters.filter('groupByAllEmotions', function (roundFilter) {
     return function (arrayBySegment) {
         return _.map(arrayBySegment, function (bag) {
@@ -490,13 +507,13 @@ filters.filter('groupByPosNegNeuEmotions', function (roundFilter) {
 
 filters.filter('tNthreshold', function (TNthreshold) {
     return function (posNegNeuObject) {
-        return (Math.abs(posNegNeuObject.negative - _.max([posNegNeuObject.positive, posNegNeuObject.neutral, posNegNeuObject.negative])) <= TNthreshold)  ? true : false; 
+        return (Math.abs(posNegNeuObject.negative - _.max([posNegNeuObject.positive, posNegNeuObject.neutral, posNegNeuObject.negative])) <= TNthreshold) ? true : false;
     };
 });
 
 filters.filter('tPthreshold', function (TPthreshold) {
     return function (posNegNeuObject) {
-        return (posNegNeuObject.positive - _.max([posNegNeuObject.neutral, posNegNeuObject.negative]) >= TPthreshold)  ? true : false; 
+        return (posNegNeuObject.positive - _.max([posNegNeuObject.neutral, posNegNeuObject.negative]) >= TPthreshold) ? true : false;
     };
 });
 

@@ -8,7 +8,7 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
     valenceArousalSegmentMeanFilter, valenceArousalSegmentDomEmotionWeightedMeanFilter,
     audioValenceArousalPosNegMapperFilter, emotionSumFilter, emotionSumGroupFilter, videoValenceArousalPosNegCombinerFilter,
     posNegNeuEmotionsFilter, keyPairWiseObjectArgmaxFilter, groupByPosNegNeuEmotionsFilter, groupByAllEmotionsFilter,
-    emotionSumWithRoundFilter, capitalizeFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter, roundFilter) {
+    emotionSumWithRoundFilter, capitalizeFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter, roundFilter, keyPairWiseTopNFilter) {
 
     let vm = this;
 
@@ -339,8 +339,18 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
         // 2. map each emotion's score inside parent array, bag images array to argmax from pos neg neu
         let screenshotsByAudioTimeSegmentMeanForEachEmotion = _.map(screenshotsByAudioTimeSegment, emotionSumWithRoundFilter);
 
+        // 2.1 get top 3 emotions
+        let screenshotsByAudioTimeSegmentMeanForEachEmotionTop3 = _.map(screenshotsByAudioTimeSegmentMeanForEachEmotion, function (item) {
+            return keyPairWiseTopNFilter(item, 3);
+        });
+
         // 3. frenquency of each emotion pos neg neu
         screenshotsByAudioTimeSegmentMeanForEachEmotion = _.map(screenshotsByAudioTimeSegmentMeanForEachEmotion, function (item, index) {
+            return _.extend({ x: index }, item);
+        });
+
+        // 4. 
+        screenshotsByAudioTimeSegmentMeanForEachEmotionTop3 = _.map(screenshotsByAudioTimeSegmentMeanForEachEmotionTop3, function (item, index) {
             return _.extend({ x: index }, item);
         });
 
@@ -374,7 +384,8 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
             dataset7VideoTimeSeriesTNthreshold: tNthreshold,
             dataset8VideoTimeSeriesTPthreshold: tPthreshold,
             dataset10VideoTimeSeriesTPTNthreshold: tPthreshold.concat(tNthreshold),
-            dataset9VideoTimeSeriesAllEmotionsInterestingPoints: screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints
+            dataset9VideoTimeSeriesAllEmotionsInterestingPoints: screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints,
+            dataset11VideoTimeSeriesTop3Emotions: screenshotsByAudioTimeSegmentMeanForEachEmotionTop3
         };
 
         //$log.info('vm.audioVideoLineChartData', videoAllImagesScoresByAudioSeg)
@@ -530,6 +541,100 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
             }
         }
     };
+
+
+
+
+    this.videoTimeSeriesLineChartTop3EmotionsOptions = {
+        margin: { top: 5 },
+        series: [
+            {
+                axis: "y",
+                dataset: "dataset11VideoTimeSeriesTop3Emotions",
+                key: "fear",
+                label: "Fear",
+                color: "#9C27B0",
+                type: ['line', 'dot'],
+                id: 'mySeriesFear'
+            },
+            {
+                axis: "y",
+                dataset: "dataset11VideoTimeSeriesTop3Emotions",
+                key: "anger",
+                label: "Anger",
+                color: "#E91E63",
+                type: ['line', 'dot'],
+                id: 'mySerieAnger'
+            },
+            {
+                axis: "y",
+                dataset: "dataset11VideoTimeSeriesTop3Emotions",
+                key: "sadness",
+                label: "Sadness",
+                color: "#000000",
+                type: ['line', 'dot'],
+                id: 'mySeriesSadness'
+            },
+            {
+                axis: "y",
+                dataset: "dataset11VideoTimeSeriesTop3Emotions",
+                key: "happiness",
+                label: "Happiness",
+                color: "#4CAF50",
+                type: ['line', 'dot'],
+                id: 'mySeriesHappiness'
+            },
+            {
+                axis: "y",
+                dataset: "dataset11VideoTimeSeriesTop3Emotions",
+                key: "neutral",
+                label: "Neutral",
+                color: "#2196F3",
+                type: ['line', 'dot'],
+                id: 'mySeriesNeutral'
+            },
+            {
+                axis: "y",
+                dataset: "dataset11VideoTimeSeriesTop3Emotions",
+                key: "contempt",
+                label: "Contempt",
+                color: "#009688",
+                type: ['line', 'dot'],
+                id: 'mySeriesContempt'
+            },
+            {
+                axis: "y",
+                dataset: "dataset11VideoTimeSeriesTop3Emotions",
+                key: "disgust",
+                label: "Disgust",
+                color: "#5C5C5C",
+                type: ['line', 'dot'],
+                id: 'mySeriesDisgust'
+            },
+            {
+                axis: "y",
+                dataset: "dataset11VideoTimeSeriesTop3Emotions",
+                key: "surprise",
+                label: "Surprise",
+                color: "#FF9800",
+                type: ['line', 'dot'],
+                id: 'mySeriesDisgust'
+            }
+        ],
+        axes: {
+            x: {
+                key: 'x',
+                tickFormat: function (value, index) {
+                    return value + '/' + timeToStrFilter(timeToDateFilter(vm.jTotableAudioEmotions.result.analysisSegments[value].offset)) + '-' +
+                        timeToStrFilter(timeToDateFilter(strToNumberFilter(vm.jTotableAudioEmotions.result.analysisSegments[value].duration) + vm.jTotableAudioEmotions.result.analysisSegments[value].offset));
+                }
+            },
+            y: {
+                max: 102
+            }
+        }
+    };
+
 
     this.videoTimeSeriesLineChartAllEmotionsOptions = {
         margin: { top: 5 },
@@ -1081,7 +1186,7 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
         opacityCircles: 0.1, 	//The opacity of the circles of each blob
         strokeWidth: 1, 		//The width of the stroke around each blob
         roundStrokes: true,	//If true the area and stroke will follow a round path (cardinal-closed)
-        color: d3.scale.category10(),	//Color function
+        //color: d3.scale.category10(),	//Color function
         class: '.radarChart'
     };
 
@@ -1125,6 +1230,9 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
         builtBarChartDiscreteEmotionsData(mouseCorrespondingData);
         builtBarChartValenceArousalData(data, vm.audioVideoLineChartData.dataset3AsAudio, vm.audioVideoLineChartData.dataset0AsVideoAvg);
         $scope.$digest();
+
+        $log.info('vm.audioVideoLineChartData', vm.audioVideoLineChartData);
+
     }
 
     function buildRadarChartData(data) {
@@ -1252,8 +1360,6 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
         ticks: ['V./A. Seg.', 'V./A. Ses.']
     };
 }
-
-
 
 
 controllers.controller('MainCtrl', MainCtrl);
