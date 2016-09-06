@@ -17,7 +17,7 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
     this.selfReportedEmotions = null;
     this.spSessions = null;
     this.startEndSwitcher = 'START';
-    this.tracesInteractionsBySession = [];
+    this.mappedTracesInteractionsBySession = [];
 
     vm.tNthreshold = [];
     this.audioVideoLineChartData = {
@@ -118,7 +118,7 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
                 console.log(err);
                 return;
             }
-        
+
             this.sessionsInteractions = data;
             //$log.debug(' this.sessionsInteractions == ',  this.sessionsInteractions);
         });
@@ -180,17 +180,75 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
         $log.debug('audioVideoLineChartData', vm.audioVideoLineChartData);
     };
 
-    function getSessionInteractions(sessionsInteractions, sessionsChunks, selectedSpSessions) {        
+    function getSessionInteractions(sessionsInteractions, sessionsChunks, selectedSpSessions) {
         vm.tracesInteractionsBySession = _.where(sessionsInteractions, { sp_session: selectedSpSessions })
         let chunksBySession = _.where(sessionsChunks, { sp_session: selectedSpSessions })
 
         // if chunks size === 1 so there is only one chunk so all 
         // the events belong to this chunk
         // otherwise find the chunk of the event
-        _.forEach(vm.tracesInteractionsBySession, function (itemI) {
+        vm.mappedTracesInteractionsBySession = [];
+        _.forEach(vm.tracesInteractionsBySession, function (itemI, index) {
             _.forEach(chunksBySession, function (itemC) {
                 if (moment(itemI.created).isBetween(itemC.startAbsolute, itemC.stopAbsolute)) {
-                    itemI.seek = itemC.startRelative + +new Date(itemI.created) - +new Date(itemC.startAbsolute);
+
+                    // if the event if free_text add it to our events bag
+                    // as event_type: TEXT with associated seek (position) and duration: 0
+                    if (itemI.action_name === 'FREE_TEXT') {
+                        vm.mappedTracesInteractionsBySession.push(
+                            {
+                                event_type: itemI.action_content_type,
+                                seek: itemC.startRelative + +new Date(itemI.created) - +new Date(itemC.startAbsolute),
+                                duration: 0
+                            });
+                    }
+                    // if the event is sharing doc we need to add it to our events bag
+                    // as event_type: PDF | IMAGE ..
+                    // seek: related to SHOW_DOC event (next event of the current one)
+                    // duration: TODO !!!! skip it for now
+                    // VERSION 0
+                    /*
+                    if (itemI.action_name === 'SHARING_DOC') {
+                        if (vm.tracesInteractionsBySession[index + 1].action_name === 'SHOW_DOC') {
+                            vm.mappedTracesInteractionsBySession.push(
+                            {
+                                event_type: itemI.action_content_type,
+                                seek: itemC.startRelative + +new Date(vm.tracesInteractionsBySession[index + 1].created) - +new Date(itemC.startAbsolute),
+                                duration: 0
+                            }); 
+                        } else {
+                            $log.error('Error traces interactions !!');
+                        }
+                    }
+                    */
+                    // VERSION 1 improved one
+                    // if action_name is SHOW_DOC so
+                    // Go_backward until action_name == SHARING_DOC to get document type
+                    // Go_forward until action_name == HIDE_DOC to get duration
+                    if (itemI.action_name === 'SHOW_DOC') {
+                        let event_type = null;
+                        let duration = null;
+                        let i = 0;
+                        do {
+                            i++;
+                            event_type = vm.tracesInteractionsBySession[index - i].action_content_type;
+                        } while ((vm.tracesInteractionsBySession[index - i].action_name !== 'SHARING_DOC'))
+
+                        i = 0;
+                        do {
+                            i++;
+                            duration = +new Date(vm.tracesInteractionsBySession[index + i].created) - +new Date(itemI.created);
+                        } while ((vm.tracesInteractionsBySession[index + i].action_name !== 'HIDE_DOC'))
+
+                        vm.mappedTracesInteractionsBySession.push(
+                            {
+                                event_type: event_type,
+                                seek: itemC.startRelative + +new Date(itemI.created) - +new Date(itemC.startAbsolute),
+                                duration: duration
+                            });
+                    }
+
+                    //itemI.seek = itemC.startRelative + +new Date(itemI.created) - +new Date(itemC.startAbsolute);
                 }
             });
         });

@@ -2013,9 +2013,9 @@ directives.directive('topnTimeLineChart', function () {
         function updateEmotionalTimeLineChart() {
 
             rScale.domain([0, d3.max(vm.globalData, function (d) { return d.value; })])
-            svg.selectAll(".timeline-vline").remove()
-            svg.selectAll(".timeline-hline").remove()
-            svg.selectAll("circle").remove()
+            svg.selectAll(".topn-timeline-hline").remove()
+            //svg.selectAll(".timeline-hline").remove()
+            //svg.selectAll("circle").remove()
 
             vm.globalData.forEach(function (d) {
 
@@ -2117,7 +2117,7 @@ directives.directive('timeLineChart', function () {
         });
 
 
-        var margin = { top: 17, right: 40, bottom: 17, left: 30 },
+        var margin = { top: 25, right: 40, bottom: 17, left: 30 },
             width = 1000 - margin.left - margin.right,
             height = 100 - margin.top - margin.bottom;
 
@@ -2144,7 +2144,7 @@ directives.directive('timeLineChart', function () {
 
         // Define the line
         var emotionLine = d3.svg.line()
-            .interpolate("cardinal")
+            //.interpolate("cardinal")
             .x(function (d) { return x(d.offset) + x(d.duration / 2); })
             .y(function (d) { return y(d.value); });
 
@@ -2196,6 +2196,7 @@ directives.directive('timeLineChart', function () {
             svg.selectAll('.circleTracesInteractionsIcons').remove();
             svg.selectAll('.textTracesInteractionsIcons').remove();
             svg.selectAll('.vlineTracesInteractionsIcons').remove();
+            svg.selectAll('.hlineTracesInteractionsIcons').remove();
 
             vm.globalData.forEach(function (d) {
                 svg.append("path")
@@ -2212,23 +2213,24 @@ directives.directive('timeLineChart', function () {
                 PDF: '\uf1c1',
                 VIDEO: '\uf1c8',
                 AUDIO: '\uf1c7',
-                TEXT: '\uf0f6'
-            }
+                TEXT: '\uf1d7'
+            } // f041
 
             // drawing bubbles
             svg.selectAll("circleTracesInteractionsIcons")
                 .data(vm.traceInteractionsData)
-                .enter().append("circle")
+                .enter()
+                .append("circle")
                 .style("opacity", 0.8)
                 .attr("class", "circleTracesInteractionsIcons")
-                .style('fill', '#2196F3')
+                .style('fill', '#795548')
                 .attr("r", 10)
                 .attr("cx", function (d) {
-                    return x(d.seek);
+                    return x(d.seek) + x(d.duration / 2);
                 })
                 .attr("cy", function (d) {
-                    return y(110);
-                })
+                    return y(123);
+                });
             
             // adding icons
             svg.selectAll("textTracesInteractionsIcons")
@@ -2241,13 +2243,13 @@ directives.directive('timeLineChart', function () {
                 .style('font-size', '14px')
                 .style('fill', 'white')
                 .text(function (d) {
-                    return interactionsIconsMap[d.action_content_type];
+                    return interactionsIconsMap[d.event_type];
                 })
                 .attr('x', function (d) {
-                    return x(d.seek);
+                    return x(d.seek) + x(d.duration / 2);
                 })
                 .attr('y', function (d) {
-                    return y(110);
+                    return y(123);
                 })
             
             // adding vertical line for each event
@@ -2258,10 +2260,23 @@ directives.directive('timeLineChart', function () {
                 .style("stroke", "blue")
                 .style("stroke-dasharray", "3,3")
                 .style("opacity", 0.5)
-                .attr("y1", function (d) { return y(95)})
+                .attr("y1", function (d) { return y(107)})
                 .attr("y2", height)
-                .attr("x1", function (d) { return x(d.seek) })
-                .attr("x2", function (d) { return x(d.seek) })
+                .attr("x1", function (d) { return x(d.seek) + x(d.duration / 2) })
+                .attr("x2", function (d) { return x(d.seek) + x(d.duration / 2) })
+
+            svg.selectAll("hline")
+                .data(vm.traceInteractionsData)
+                .enter().append("line")
+                .attr("class", "hlineTracesInteractionsIcons")
+                .style("stroke", "blue")
+                //.style("stroke-dasharray", "2,2")
+                .style('stroke-width', '1.5')
+                .style("opacity", 0.5)
+                .attr("y1", y(105))
+                .attr("y2", y(105))
+                .attr("x1", function (d) { return x(d.seek); })
+                .attr("x2", function (d) { return x(d.seek) + x(d.duration); })
         }
 
         buildMultiBartChartLegend(vm.options.bars);
