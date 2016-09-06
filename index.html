@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.1.6/assets/owl.carousel.min.css">
     <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.transitions.min.css">-->
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bxslider/4.2.5/jquery.bxslider.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
 
 </head>
 
@@ -88,19 +89,20 @@
             </div>
         </div>
         <div class="element">
-            <header>Video Avg(p,n):</header>
-            <div id="mood-map-chart">
-                <mood-map-chart mood-points="main.videoEmotionsByAudioTimeSegmentForMoodMapAsAvgPosNegFormula" data="main.mood" check-point=""
-                    change-handler=""></mood-map-chart>
-            </div>
-        </div>
-        <div class="element">
             <header>Video Vec Coor. al.:</header>
             <div id="mood-map-chart">
                 <mood-map-chart mood-points="main.videoEmotionsByAudioTimeSegmentForMoodMapAsVecCoorWMForEachEmotionFormula" data="main.mood"
                     check-point="" change-handler=""></mood-map-chart>
             </div>
         </div>
+        <div class="element">
+            <header>Video Avg(p,n):</header>
+            <div id="mood-map-chart">
+                <mood-map-chart mood-points="main.videoEmotionsByAudioTimeSegmentForMoodMapAsAvgPosNegFormula" data="main.mood" check-point=""
+                    change-handler=""></mood-map-chart>
+            </div>
+        </div>
+        
         <!--<div class="element">
             <header>Video Vec Coor. Dom.:</header>
             <div id="mood-map-chart">

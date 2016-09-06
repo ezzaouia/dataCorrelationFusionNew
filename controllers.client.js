@@ -8,7 +8,7 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
     valenceArousalSegmentMeanFilter, valenceArousalSegmentDomEmotionWeightedMeanFilter,
     audioValenceArousalPosNegMapperFilter, emotionSumFilter, emotionSumGroupFilter, videoValenceArousalPosNegCombinerFilter,
     posNegNeuEmotionsFilter, keyPairWiseObjectArgmaxFilter, groupByPosNegNeuEmotionsFilter, groupByAllEmotionsFilter,
-    emotionSumWithRoundFilter, capitalizeFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter, roundFilter, keyPairWiseTopNFilter) {
+    emotionSumWithRoundFilter, capitalizeFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter, roundFilter, keyPairWiseTopNFilter, meanFilter) {
 
     let vm = this;
 
@@ -17,6 +17,7 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
     this.selfReportedEmotions = null;
     this.spSessions = null;
     this.startEndSwitcher = 'START';
+    this.tracesInteractionsBySession = [];
 
     vm.tNthreshold = [];
     this.audioVideoLineChartData = {
@@ -100,6 +101,45 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
             }
             // put video emotions data in mainCtrl scope
             this.videoEmotions = data;
+        });
+
+        // start loading session's interactions json data
+        async.waterfall([
+            function (callback) {
+                $http.get('./data/emosessioninteractions.json').then(function (res) {
+                    vm.sessionsInteractions = res.data;
+                    callback(null, res.data);
+                }, function (err) {
+                    callback(err);
+                });
+            }
+        ], function (err, data) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+        
+            this.sessionsInteractions = data;
+            //$log.debug(' this.sessionsInteractions == ',  this.sessionsInteractions);
+        });
+
+        // start loading session's chunks json data
+        async.waterfall([
+            function (callback) {
+                $http.get('./data/chunks.json').then(function (res) {
+                    vm.sessionsChunks = res.data;
+                    callback(null, res.data);
+                }, function (err) {
+                    callback(err);
+                });
+            }
+        ], function (err, data) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            this.sessionsChunks = data;
+            //$log.debug(' this.sessionsChunks == ',  this.sessionsChunks);
             // progress
             vm.activated = false;
         });
@@ -132,12 +172,29 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
         /** video scatter plot */
         getVideoEmotionsByTimeSegment();
 
+        /** get session's interactions */
+        getSessionInteractions(vm.sessionsInteractions, vm.sessionsChunks, vm.selectedSpSessions);
+
         vm.activated = false;
 
-        $log.info('audioVideoLineChartData', vm.audioVideoLineChartData);
-
+        $log.debug('audioVideoLineChartData', vm.audioVideoLineChartData);
     };
 
+    function getSessionInteractions(sessionsInteractions, sessionsChunks, selectedSpSessions) {        
+        vm.tracesInteractionsBySession = _.where(sessionsInteractions, { sp_session: selectedSpSessions })
+        let chunksBySession = _.where(sessionsChunks, { sp_session: selectedSpSessions })
+
+        // if chunks size === 1 so there is only one chunk so all 
+        // the events belong to this chunk
+        // otherwise find the chunk of the event
+        _.forEach(vm.tracesInteractionsBySession, function (itemI) {
+            _.forEach(chunksBySession, function (itemC) {
+                if (moment(itemI.created).isBetween(itemC.startAbsolute, itemC.stopAbsolute)) {
+                    itemI.seek = itemC.startRelative + +new Date(itemI.created) - +new Date(itemC.startAbsolute);
+                }
+            });
+        });
+    }
 
     function getSelfReportedEmotionsBySessionFromJsonData(jsonData, selectedSpSessions) {
 
@@ -356,20 +413,24 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
 
         //$log.info('screenshotsByAudioTimeSegmentMappedPosNegNeu', screenshotsByAudioTimeSegmentMeanForEachEmotion);
         let tNthreshold = _.filter(screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion, function (item) {
-            return tNthresholdFilter(item);
+            return tNthresholdFilter(item, meanFilter(_.pluck(screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion, 'negative')));
         });
+
+        $log.debug('screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion', screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion);
+        $log.debug('mean ==== ', meanFilter(_.pluck(screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion, 'negative')));
+
 
         let tPthreshold = _.filter(screenshotsByAudioTimeSegmentMappedPosNegNeuArgmaxGroupByEmotion, function (item) {
             return tPthresholdFilter(item);
         });
 
         let interestingPoints = tNthreshold.concat(tPthreshold);
-        let interestingPointsIndices = _.pluck(interestingPoints, 'x');
+        vm.interestingPointsIndices = _.pluck(interestingPoints, 'x');
         let screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints = _.filter(screenshotsByAudioTimeSegmentMeanForEachEmotion, function (item) {
-            return _.indexOf(interestingPointsIndices, item.x) !== -1 ? true : false;
+            return _.indexOf(vm.interestingPointsIndices, item.x) !== -1 ? true : false;
         });
 
-        $log.info('screenshotsByAudioTimeSegmentMeanForEachEmotionCleanedUp', screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints);
+        $log.info('interestingPointsIndices', vm.interestingPointsIndices);
 
 
         // I'll use the objects already computed to plot line chart

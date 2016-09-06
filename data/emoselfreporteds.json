@@ -538,6 +538,38 @@
     },
     {
       "_id": {
+        "$oid": "57714c23121f600eb8e3b6de"
+      },
+      "learner": {
+        "$oid": "575e88bbf1a57a61252b4a33"
+      },
+      "coach": {
+        "$oid": "560844b067b8fad40981e1a4"
+      },
+      "pack": {
+        "$oid": "575edccef1a57a61252b4f47"
+      },
+      "check_point": "START",
+      "sp_session": {
+        "$oid": "575ef103f1a57a61252b4feb-2"
+      },
+      "emotions": {
+        "arousal_level": 0,
+        "valence_level": 0,
+        "discrete_emotions": [
+          {
+            "emotion_name": "HAPPINESS",
+            "emotion_level": 100
+          }
+        ]
+      },
+      "created": {
+        "$date": "2016-06-27T15:54:11.477+0000"
+      },
+      "__v": 0
+    },
+    {
+      "_id": {
         "$oid": "577156dd121f600eb8e3b73e"
       },
       "learner": {

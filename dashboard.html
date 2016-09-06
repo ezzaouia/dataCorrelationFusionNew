@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.1.6/assets/owl.carousel.min.css">
     <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.transitions.min.css">-->
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bxslider/4.2.5/jquery.bxslider.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
 </head>
 
 <body ng-controller="MainCtrl as main">
@@ -51,32 +52,45 @@
 
         <div class="timeIntervalDetailsContainer">
             <div class="element">
+                <radar-chart meta-data="main.radarChartData" data="main.radarChartData" options="main.radarChartOptions"></radar-chart>
+            </div>
+            <div class="element">
                 <multi-bar-chart data="main.barChartData" options="main.barChartDiscreteEmotionsOptions"></multi-bar-chart>
             </div>
             <div class="element">
                 <multi-bar-chart-new data="main.barChartValenceArousalData" options="main.barChartValenceArousalEmotionsOptions"></multi-bar-chart-new>
             </div>
-            <div class="element">
-                <pie-chart-donut data="main.pieChartData"></pie-chart-donut>
+        </div>
+
+
+        <div class="timeIntervalContainer">
+
+            <div class="time-line3">
+                <!--<emotional-time-line-player-chart data="main.dataPlayer" options="main.options">
+                </emotional-time-line-player-chart>-->
+
+                <time-line-chart data="main.audioVideoLineChartData.dataset11VideoTimeSeriesTop3Emotions" options="main.barChartDiscreteEmotionsOptions"
+                    audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments"
+                    trace-interactions-data="main.tracesInteractionsBySession">
+                </time-line-chart>
+
+                <topn-time-line-chart data="main.audioVideoLineChartData.dataset11VideoTimeSeriesTop3Emotions" options="main.barChartDiscreteEmotionsOptions"
+                    audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments" interesting-points-indices="main.interestingPointsIndices">
+                </topn-time-line-chart>
+
+                <emotional-time-line-chart data="main.data" video-tp-data="main.audioVideoLineChartData.dataset8VideoTimeSeriesTPthreshold"
+                    video-tn-data="main.audioVideoLineChartData.dataset7VideoTimeSeriesTNthreshold" options="main.options" audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments"
+                    video-meta-data="main.screenshotsByAudioTimeSegment" on-click-handler="main.onClickEmotionalTimeLineChart"
+                    on-mouseenter-handler="main.onMouseenterEmotionalTimeLineChart"
+                    trace-interactions-data="main.tracesInteractionsBySession">
+                </emotional-time-line-chart>
             </div>
             <div class="element">
-                <radar-chart meta-data="main.radarChartData" data="main.radarChartData" options="main.radarChartOptions"></radar-chart>
+                <pie-chart-donut data="main.pieChartData"></pie-chart-donut>
             </div>
         </div>
 
 
-
-        <emotional-time-line-player-chart data="main.dataPlayer" options="main.options">
-        </emotional-time-line-player-chart>
-
-        <time-line-chart data="main.audioVideoLineChartData.dataset11VideoTimeSeriesTop3Emotions" options="main.barChartDiscreteEmotionsOptions"
-            audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments">
-        </time-line-chart>
-        
-        <emotional-time-line-chart data="main.data" video-tp-data="main.audioVideoLineChartData.dataset8VideoTimeSeriesTPthreshold"
-            video-tn-data="main.audioVideoLineChartData.dataset7VideoTimeSeriesTNthreshold" options="main.options" audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments"
-            video-meta-data="main.screenshotsByAudioTimeSegment" on-click-handler="main.onClickEmotionalTimeLineChart" on-mouseenter-handler="main.onMouseenterEmotionalTimeLineChart">
-        </emotional-time-line-chart>
 
     </div>
 

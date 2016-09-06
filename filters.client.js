@@ -53,6 +53,12 @@ filters.filter('scale', function (d3) {
     };
 });
 
+filters.filter('mean', function () {
+    return function (array) {
+        return _.sum(array) / _.size(array);
+    };
+});
+
 
 filters.filter('scale0255', function (d3) {
     return function (nbr) {
@@ -418,15 +424,22 @@ filters.filter('keyPairWiseObjectArgmax', function () {
 
 filters.filter('keyPairWiseTopN', function () {
     return function (object, n) {
-        var topN = _.map(object, function (value, key) {
+        let topN = _.map(object, function (value, key) {
             return { key: key, value: value };
         });
-        topN = _.sortByOrder(topN, 'value', ['desc']).slice(0, n);
+        let sorted = _.sortByOrder(topN, 'value', ['desc']);
+        topN = sorted.slice(0, n);
+        let rest = sorted.slice(n)
         topN = _.reduce(topN, function (result, object) {
             result[object.key] = object.value;
             return result
         }, {});
-        return topN;
+
+        rest = _.reduce(rest, function (result, object) {
+            result[object.key] = 0//object.value;
+            return result
+        }, {});
+        return _.extend(topN, rest);
     };
 });
 
@@ -506,8 +519,8 @@ filters.filter('groupByPosNegNeuEmotions', function (roundFilter) {
 });
 
 filters.filter('tNthreshold', function (TNthreshold) {
-    return function (posNegNeuObject) {
-        return (Math.abs(posNegNeuObject.negative - _.max([posNegNeuObject.positive, posNegNeuObject.neutral, posNegNeuObject.negative])) <= TNthreshold) ? true : false;
+    return function (posNegNeuObject, tNthreshold ) {
+        return (Math.abs(posNegNeuObject.negative - _.max([posNegNeuObject.positive, posNegNeuObject.neutral, posNegNeuObject.negative])) <= (tNthreshold || TNthreshold)) ? true : false;
     };
 });
 
