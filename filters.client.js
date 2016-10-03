@@ -53,6 +53,15 @@ filters.filter('scale', function (d3) {
     };
 });
 
+filters.filter('inverseScale', function (d3) {
+    return function (nbr) {
+        let scale = d3.scale.linear();
+        scale.domain([-100, 100]);
+        scale.range([0, 100]);
+        return scale(nbr);
+    };
+});
+
 filters.filter('mean', function () {
     return function (array) {
         return _.sum(array) / _.size(array);

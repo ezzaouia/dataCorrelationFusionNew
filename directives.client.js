@@ -883,7 +883,7 @@ directives.directive('multiBarChart', function () {
 
     function multiBarchartController($scope, $element, $log, scale0255Filter, roundFilter, propPaisWiseArgmaxFilter, capitalizeFilter, scale0255To100Filter) {
         let vm = this;
-        var margin = { top: 10, right: 0, bottom: 20, left: 25, legend: 40 },
+        var margin = { top: 10, right: 0, bottom: 20, left: 25, legend: 0 },
             width = 180 - margin.left - margin.right,
             height = 150 - margin.top - margin.bottom;
 
@@ -1013,7 +1013,7 @@ directives.directive('multiBarChart', function () {
                 .attr("y", function (d) { return y(d); })
         }
 
-        buildMultiBartChartLegend(vm.options.bars);
+        // buildMultiBartChartLegend(vm.options.bars);
 
         function buildMultiBartChartLegend(data) {
             // adding legend
@@ -1056,7 +1056,7 @@ directives.directive('multiBarChartNew', function () {
 
     function multiBarchartController($scope, $element, $log, scale0255Filter, roundFilter, propPaisWiseArgmaxFilter, capitalizeFilter, scale0255To100Filter) {
         let vm2 = this;
-        var margin = { top: 10, right: 0, bottom: 20, left: 25, legend: 40 },
+        var margin = { top: 10, right: 0, bottom: 20, left: 25, legend: 0 },
             width = 180 - margin.left - margin.right,
             height = 150 - margin.top - margin.bottom;
 
@@ -1177,7 +1177,7 @@ directives.directive('multiBarChartNew', function () {
                 .attr("y", function (d) { return y(Math.max(0, d)); })
         }
 
-        buildMultiBartChartLegend(vm2.options.bars);
+        // buildMultiBartChartLegend(vm2.options.bars);
 
         function buildMultiBartChartLegend(data) {
             // adding legend
@@ -1273,16 +1273,16 @@ directives.directive('pieChartDonut', function () {
             render();
         }, true);
 
-        var margin = { top: 3, right: 3, bottom: 3, left: 3, title: 10 },
+        var margin = { top: 3, right: 3, bottom: 3, left: 3, title: 30 },
             width = 130,
             height = 120
 
         // set the thickness of the inner and outer radii
         var min = Math.min(width, height);
-        var oRadius = min / 2 * 0.9;
-        var iRadius = min / 2 * .80;
+        var oRadius = min / 2 * 0.98;
+        var iRadius = min / 2 * .82;
         // construct default pie laoyut
-        var pie = d3.layout.pie().value(function (d) { return d.value; }).sort(null);
+        var pie = d3.layout.pie().value(function (d) { return Math.round(d.value); }).sort(null);
         // construct arc generator
         var arc = d3.svg.arc()
             .outerRadius(oRadius)
@@ -1302,12 +1302,6 @@ directives.directive('pieChartDonut', function () {
             .append("g")
             .attr("transform", "translate(" + (width / 2) + "," + (height / 2) + ")");
 
-        svg.append("g")
-            .append("text")
-            .attr("text-anchor", "middle")
-            .attr("y", height / 2 + margin.title)
-            .text("Pie Chart - Video");
-
         // enter data and draw pie chart
         var path = svg.datum(pieChartCtrl.data).selectAll("path")
             .data(pie)
@@ -1323,8 +1317,6 @@ directives.directive('pieChartDonut', function () {
                 this._current = d;
             })
 
-
-
         var colorRange = d3.scale.category20();
         var color = d3.scale.ordinal()
             .range(colorRange.range());
@@ -1332,9 +1324,26 @@ directives.directive('pieChartDonut', function () {
         var legendSpacing = 4;
         var legendHeight = legendRectSize + legendSpacing;
 
+        let emoticonMap = {
+            'Neutral': 'sceptic',
+            'Positive': 'smile',
+            'Negative': 'sad'
+        };
+
+        let emoticonMapFa = {
+            'Neutral': '\uf11a',
+            'Positive': '\uf118',
+            'Negative': '\uf119'
+        };
 
 
         function render() {
+
+            svg.selectAll('.piechartEmoticon').remove()
+            svg.selectAll('.textCategoriesIntensity').remove()
+            svg.selectAll('.textCategoriesIntensity').remove()
+            svg.selectAll('.textCategoriesIcons').remove()
+
             // generate new random data
             //data = makeData(4);
             // add transition to new path
@@ -1351,7 +1360,53 @@ directives.directive('pieChartDonut', function () {
             svg.datum(pieChartCtrl.data).selectAll("path")
                 .data(pie).exit().remove();
 
-            buildPieChartLegend($scope.globalData || []);
+            // buildPieChartLegend($scope.globalData || []);
+            let vals = _.pluck(pieChartCtrl.data, 'value');
+            let labels = _.pluck(pieChartCtrl.data, 'label');
+
+            let labelDominate = labels[_.indexOf(vals, _.max(vals))];
+
+            // adding emoticon to the center
+            addPieChartEmoticon(emoticonMap[labelDominate] || 'sceptic', _.max(vals));
+
+            // adding icons
+            svg.selectAll("textCategoriesIcons")
+                .data(pieChartCtrl.data).enter()
+                .append('text')
+                .attr("class", "textCategoriesIcons")
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'central')
+                .style('font-family', 'FontAwesome')
+                .style('fill', function (d) {
+                    return d.color;
+                })
+                .style('font-size', '24px')
+                .text(function (d) {
+                    return emoticonMapFa[d.label];
+                })
+                .attr('x', function (d, i) {
+                    return -width / 4 + i * 38;
+                })
+                .attr('y', height / 2 + margin.title - 15)
+
+            // adding icons
+            svg.selectAll("textCategoriesIntensity")
+                .data(pieChartCtrl.data).enter()
+                .append('text')
+                .attr("class", "textCategoriesIntensity")
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'central')
+                .style('fill', function (d) {
+                    return d.color;
+                })
+                .style('font-size', '8px')
+                .text(function (d) {
+                    return Math.round(d.value) + '%';
+                })
+                .attr('x', function (d, i) {
+                    return -width / 4 + i * 39;
+                })
+                .attr('y', height / 2 + margin.title)
 
         }
         render();
@@ -1367,6 +1422,21 @@ directives.directive('pieChartDonut', function () {
             };
         }
 
+
+        // adding emoticon to pie chart
+        function addPieChartEmoticon(icon, intensity) {
+            svg
+                // .append("g")
+                // .attr("transform", function (d, i) { return "translate(0," + i * 10 + ")"; })
+                .append('image')
+                .style('opacity', intensity / 100)
+                .attr("class", "piechartEmoticon")
+                .attr('xlink:href', './assets/' + icon + '.svg')
+                .attr('height', '70%')
+                .attr('width', '70%')
+                .attr('x', -47.5)
+                .attr("y", -53)
+        }
 
         function buildPieChartLegend(data) {
             // adding legend
@@ -1560,8 +1630,6 @@ directives.directive('emotionalTimeLinePlayerChartOld', function () {
                     return x(d.offset) //+ x(d.duration / 2);
                 })
                 .attr("cy", function (d) {
-                    $log.info('d============', d);
-
                     return y(d.value);
                 })
 
@@ -1655,11 +1723,11 @@ directives.directive('emotionalTimeLinePlayerChartOld', function () {
 })
 
 
-directives.directive('emotionalTimeLineChart', function () {
+directives.directive('markersTimeLineChart', function () {
     return {
         restricted: 'E',
         controller: emotionalTimeLineController,
-        //templateUrl: 'emotionalTimeLineChart.view.html',
+        //templateUrl: 'markersTimeLineChart.view.html',
         bindToController: true,
         controllerAs: 'vm',
         scope: {
@@ -1707,8 +1775,8 @@ directives.directive('emotionalTimeLineChart', function () {
             updateEmotionalTimeLineChart()
         });
 
-        var margin = { top: 7, right: 40, bottom: 17, left: 30 },
-            width = 1000 - margin.left - margin.right,
+        var margin = { top: 7, right: 30, bottom: 17, left: 30 },
+            width = window.innerWidth - margin.left - margin.right,
             height = 100 - margin.top - margin.bottom;
 
         // y scale
@@ -1862,7 +1930,8 @@ directives.directive('emotionalTimeLineChart', function () {
             }
         }
 
-        buildMultiBartChartLegend(vm.options);
+        // 
+        // buildMultiBartChartLegend(vm.options);
 
         function buildMultiBartChartLegend(data) {
             // adding legend
@@ -1891,6 +1960,7 @@ directives.directive('emotionalTimeLineChart', function () {
     }
 })
 
+
 directives.directive('topnTimeLineChart', function () {
     return {
         restricted: 'E',
@@ -1915,10 +1985,6 @@ directives.directive('topnTimeLineChart', function () {
                 return _.indexOf(vm.interestingPointsIndices, item.x) !== -1 ? true : false;
             });
 
-            $log.info('CleanedData', CleanedData, vm.interestingPointsIndices);
-
-
-
             vm.globalData = {};
             // map data by keys
             _.forEach(CleanedData, function (item) {
@@ -1942,8 +2008,8 @@ directives.directive('topnTimeLineChart', function () {
             updateEmotionalTimeLineChart()
         });
 
-        var margin = { top: 7, right: 40, bottom: 17, left: 30 },
-            width = 1000 - margin.left - margin.right,
+        var margin = { top: 7, right: 30, bottom: 17, left: 30 },
+            width = window.innerWidth - margin.left - margin.right,
             height = 100 - margin.top - margin.bottom;
 
         // y scale
@@ -2042,7 +2108,7 @@ directives.directive('topnTimeLineChart', function () {
         let positiveEmotions = ['happiness', 'surprise'];
         let negativeEmotions = ['sadness', 'disgust', 'contempt', 'fear', 'anger'];
 
-        buildMultiBartChartLegend(vm.options.bars);
+        // buildMultiBartChartLegend(vm.options.bars);
 
         function buildMultiBartChartLegend(data) {
             // adding legend
@@ -2072,10 +2138,10 @@ directives.directive('topnTimeLineChart', function () {
 })
 
 
-directives.directive('timeLineChart', function () {
+directives.directive('lineTimeLineChart', function () {
     return {
         restricted: 'E',
-        controller: emotionalTimeLineController,
+        controller: lineTimeLineController,
         bindToController: true,
         controllerAs: 'vm',
         scope: {
@@ -2088,7 +2154,7 @@ directives.directive('timeLineChart', function () {
         }
     };
 
-    function emotionalTimeLineController($scope, $element, $log, timeToStrFilter, $interval, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
+    function lineTimeLineController($scope, $element, $log, timeToStrFilter, $interval, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
         let vm = this;
         vm.globalData = {};
         $scope.$watch('vm.data', function () {
@@ -2117,8 +2183,14 @@ directives.directive('timeLineChart', function () {
         });
 
 
-        var margin = { top: 25, right: 40, bottom: 17, left: 30 },
-            width = 1000 - margin.left - margin.right,
+        // function to update dimension according to window width
+        function updateDimensions(winWidth) {
+            width = winWidth - margin.left - margin.right;
+            height = 500 - margin.top - margin.bottom;
+        }
+
+        var margin = { top: 25, right: 30, bottom: 17, left: 30 },
+            width = window.innerWidth - margin.left - margin.right,
             height = 100 - margin.top - margin.bottom;
 
         // y scale
@@ -2231,7 +2303,7 @@ directives.directive('timeLineChart', function () {
                 .attr("cy", function (d) {
                     return y(123);
                 });
-            
+
             // adding icons
             svg.selectAll("textTracesInteractionsIcons")
                 .data(vm.traceInteractionsData).enter()
@@ -2251,7 +2323,7 @@ directives.directive('timeLineChart', function () {
                 .attr('y', function (d) {
                     return y(123);
                 })
-            
+
             // adding vertical line for each event
             svg.selectAll("vline")
                 .data(vm.traceInteractionsData)
@@ -2260,7 +2332,7 @@ directives.directive('timeLineChart', function () {
                 .style("stroke", "blue")
                 .style("stroke-dasharray", "3,3")
                 .style("opacity", 0.5)
-                .attr("y1", function (d) { return y(107)})
+                .attr("y1", function (d) { return y(107) })
                 .attr("y2", height)
                 .attr("x1", function (d) { return x(d.seek) + x(d.duration / 2) })
                 .attr("x2", function (d) { return x(d.seek) + x(d.duration / 2) })
@@ -2279,7 +2351,7 @@ directives.directive('timeLineChart', function () {
                 .attr("x2", function (d) { return x(d.seek) + x(d.duration); })
         }
 
-        buildMultiBartChartLegend(vm.options.bars);
+        // buildMultiBartChartLegend(vm.options.bars);
 
         function buildMultiBartChartLegend(data) {
             // adding legend
@@ -2304,6 +2376,235 @@ directives.directive('timeLineChart', function () {
                 .attr("dy", ".25em")
                 .style("text-anchor", "end")
                 .text(function (d) { return d.label; });
+        }
+    }
+})
+
+
+directives.directive('stackedAreaTimeLineChart', function () {
+    return {
+        restricted: 'E',
+        controller: stackedAreaTimeLineController,
+        bindToController: true,
+        controllerAs: 'vm',
+        scope: {
+            data: '=',
+            options: '=',
+            videoTimeSeries: '=',
+            audioMetaData: '=',
+            traceInteractionsData: '='
+
+        }
+    };
+
+    function stackedAreaTimeLineController($scope, $element, $log, timeToStrFilter, $interval, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
+        let vm = this;
+        vm.globalData = {};
+        $scope.$watch('vm.data', function () {
+
+            vm.globalData = {};
+            // map data by keys
+            _.forEach(vm.data, function (item) {
+
+                _.map(item, function (v, k) {
+                    (vm.globalData[k] = (vm.globalData[k] || [])).push({
+                        value: v,
+                        x: item.x,
+                        offset: vm.audioMetaData[item.x].offset,
+                        duration: vm.audioMetaData[item.x].duration
+                    });
+                });
+            });
+
+            vm.globalData = _.omit(vm.globalData, 'x');
+            vm.globalData = _.map(vm.globalData, function (value, key) {
+                return { key: key, values: value };
+            });
+
+            // update chart
+            updateEmotionalTimeLineChart()
+        });
+
+
+        // function to update dimension according to window width
+        function updateDimensions(winWidth) {
+            width = winWidth - margin.left - margin.right;
+            height = 500 - margin.top - margin.bottom;
+        }
+
+        var margin = { top: 25, right: 30, bottom: 17, left: 30 },
+            width = window.innerWidth - margin.left - margin.right,
+            height = 100 - margin.top - margin.bottom;
+
+        // y scale
+        var y = d3.scale.linear()
+                  .domain([0, 100])
+                  .range([height, 0]);
+
+        var yAxis = d3.svg.axis()
+                      .scale(y)
+                      .ticks(5)
+                      .orient("left");
+
+        // x axis
+        var x = d3.time.scale()
+                  //.domain([0, 47 * 60 * 1000])
+                  .range([0, width]);
+
+        var xAxis = d3.svg.axis()
+                      .scale(x)
+                      .orient("bottom")
+                      .ticks(d3.time.days)
+                      //.tickFormat(d3.time.format('%M:%S'));
+
+        // Define the line
+        var emotionLine = d3.svg.line()
+        //.interpolate("cardinal")
+                            .x(function (d) { return x(d.offset) + x(d.duration / 2); })
+                            .y(function (d) { return y(d.value); });
+
+
+        // here the main svg
+        var svg = d3.select($element[0])
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr('class', 'g_main')
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+        // adding axis x & y the svg
+        let g = svg.append("g")
+                   .attr("class", "y axis")
+                   .call(yAxis);
+
+        g.append("text")
+         .attr("transform", "rotate(-90)")
+         .attr("y", 3)
+         .attr("dy", ".71em")
+         .style("text-anchor", "end")
+         .text("Score");
+
+        g.append("text")
+         .attr("transform", "rotate(-90)")
+         .attr("y", 3)
+         .attr("dy", "1.71em")
+         .style("text-anchor", "end")
+         .text("Top 3")
+
+        svg.append("g")
+           .attr("class", "x axis")
+           .attr("transform", "translate(0," + height + ")")
+           .call(xAxis)
+           .append("text")
+           .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+           .attr("transform", "translate(" + (width - margin.right) + "," + -2 + ")")  // centre below axis
+           .text("Time (min)");
+
+        var format = d3.time.format("%m/%d/%y");
+
+        var stack = d3.layout.stack()
+                      .offset("zero")
+                      .values(function(d) { return d.values; })
+                      .x(function(d) { return d.date; })
+                      .y(function(d) { return d.value; });
+
+        var nest = d3.nest()
+                     .key(function(d) { return d.key; });
+
+        var area = d3.svg.area()
+                     .interpolate("cardinal")
+                     .x(function(d) { return x(d.date); })
+                     .y0(function(d) { return y(d.y0); })
+                     .y1(function(d) { return y(d.y0 + d.y); });
+
+
+        var z = d3.scale.category20c();
+
+        function updateEmotionalTimeLineChart() {
+            //x.domain(d3.extent(data, function (d) { return d.date; }));
+            //y.domain([0, d3.max(data, function (d) { return d.price; })]);
+
+            svg.selectAll('.emotion-line').remove();
+            svg.selectAll('.circleTracesInteractionsIcons').remove();
+            svg.selectAll('.textTracesInteractionsIcons').remove();
+            svg.selectAll('.vlineTracesInteractionsIcons').remove();
+            svg.selectAll('.hlineTracesInteractionsIcons').remove();
+
+            // $log.debug('=============> vm.globalData', vm.globalData)
+            //
+            // var layers = stack(nest.entries(vm.globalData));
+            //
+            // svg.selectAll(".layer")
+            //    .data(layers)
+            //    .enter().append("path")
+            //    .attr("class", "layer")
+            //    .attr("d", function(d) { return area(d.values); })
+            //    .style("fill", function (d) {
+            //        return  _.find(vm.options.bars, { key: d.key }).color;
+            //    });
+
+            d3.csv("./data/data.csv", function(error, data) {
+                if (error) {
+                    $log.error(error.toString());
+                    return;
+                };
+
+                data.forEach(function(d) {
+                    d.date = format.parse(d.date);
+                    d.value = +d.value;
+                });
+
+                var layers = stack(nest.entries(data));
+
+                x.domain(d3.extent(data, function(d) { return d.date; }));
+                y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
+
+                svg.selectAll(".layer")
+                   .data(layers)
+                   .enter().append("path")
+                   .attr("class", "layer")
+                   .attr("d", function(d) { return area(d.values); })
+                   .style("fill", function(d, i) { return z(i); });
+
+                // svg.append("g")
+                //    .attr("class", "x axis")
+                //    .attr("transform", "translate(0," + height + ")")
+                //    .call(xAxis);
+                //
+                // svg.append("g")
+                //    .attr("class", "y axis")
+                //    .call(yAxis);
+            });
+
+        }
+
+        // buildMultiBartChartLegend(vm.options.bars);
+
+        function buildMultiBartChartLegend(data) {
+            // adding legend
+            var legend = svg.selectAll(".legend")
+                            .data(data)
+                            .enter().append("g")
+                            .attr("class", "legend")
+                            .attr("transform", function (d, i) { return "translate(0," + i * 10 + ")"; });
+
+            legend.append("rect")
+                  .attr("x", width + 35)
+                  .attr("width", 3)
+                  .attr("height", 3)
+                  .style("fill", function (d) {
+                      return d.color;
+                  });
+
+            legend.append("text")
+                  .attr("x", width + 30)
+                  .style('font-size', '7px')
+                  .attr("y", 5 - 5 / 2) // to aling it with rect
+                  .attr("dy", ".25em")
+                  .style("text-anchor", "end")
+                  .text(function (d) { return d.label; });
         }
     }
 })
@@ -2451,7 +2752,7 @@ directives.directive('emotionalTimeLineImagesCarousel', function () {
         }
     };
 
-    function emotionalTimeLineImagesCarouselController($scope, $element, $log, timeToStrFilter, $interval, timeToDateFilter, scale0255To100Filter, scale0255Filter, roundFilter, capitalizeFilter, propPaisWiseArgmaxFilter) {
+    function emotionalTimeLineImagesCarouselController($scope, $element, $log, roundFilter, capitalizeFilter) {
         let vm = this;
         let audio = document.getElementById('audioElement');
         $scope.$watch('vm.data', function () {
@@ -2496,7 +2797,7 @@ directives.directive('emotionalTimeLineImagesCarousel', function () {
                 let slider = $('.slider-carousel').bxSlider({
                     //auto: true,
                     adaptiveHeight: true,
-                    slideWidth: 170,
+                    slideWidth: 110,
                     minSlides: 2,
                     maxSlides: 5,
                     slideMargin: 10,

@@ -42,6 +42,33 @@
         </div>
     </md-toolbar>
 
+
+    <!--<md-toolbar>-->
+        <!--<div class="md-toolbar-tools">-->
+            <!--<span>-->
+                <!--<ng-md-icon icon="account_circle" style="fill: #57C4F2" size="64"></ng-md-icon>-->
+            <!--</span>-->
+
+            <!--<span flex></span>-->
+
+            <!--<md-select class="md-select-body" placeholder="Session" ng-model="main.selectedSpSessions" md-on-close="">-->
+                <!--<md-optgroup label="Sessions">-->
+                    <!--<md-option ng-value="session" ng-repeat="session in main.spSessions">{{session}}</md-option>-->
+                <!--</md-optgroup>-->
+            <!--</md-select>-->
+            <!--<md-button class="toolbar-button" aria-label="Notifications">-->
+                <!--<i class="material-icons">thumb_up</i>-->
+                <!--<span class="success-notifications-label">9</span>-->
+            <!--</md-button>-->
+            <!--<md-button class="toolbar-button" aria-label="Notifications">-->
+                <!--<i class="material-icons">notifications</i>-->
+                <!--<span class="warning-notifications-label">6</span>-->
+            <!--</md-button>-->
+        <!--</div>-->
+    <!--</md-toolbar>-->
+
+
+
     <div id="progressCircle">
         <md-progress-circular ng-hide="!main.activated" ng-disabled="!main.activated" class="md-hue-2" md-diameter="50px"></md-progress-circular>
     </div>
@@ -51,6 +78,9 @@
         </emotional-time-line-images-carousel>
 
         <div class="timeIntervalDetailsContainer">
+            <div class="element">
+                <pie-chart-donut data="main.pieChartData"></pie-chart-donut>
+            </div>
             <div class="element">
                 <radar-chart meta-data="main.radarChartData" data="main.radarChartData" options="main.radarChartOptions"></radar-chart>
             </div>
@@ -69,25 +99,32 @@
                 <!--<emotional-time-line-player-chart data="main.dataPlayer" options="main.options">
                 </emotional-time-line-player-chart>-->
 
-                <time-line-chart data="main.audioVideoLineChartData.dataset11VideoTimeSeriesTop3Emotions" options="main.barChartDiscreteEmotionsOptions"
-                    audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments"
-                    trace-interactions-data="main.mappedTracesInteractionsBySession">
-                </time-line-chart>
+                <line-time-line-chart data="main.audioVideoLineChartData.dataset11VideoTimeSeriesTop3Emotions" options="main.barChartDiscreteEmotionsOptions"
+                    audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments" trace-interactions-data="main.mappedTracesInteractionsBySession">
+                </line-time-line-chart>
+
+
+                <!--<stacked-area-time-line-chart data="main.audioVideoLineChartData.dataset11VideoTimeSeriesTop3Emotions" options="main.barChartDiscreteEmotionsOptions"-->
+                                      <!--audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments" trace-interactions-data="main.mappedTracesInteractionsBySession">-->
+                <!--</stacked-area-time-line-chart>-->
 
                 <topn-time-line-chart data="main.audioVideoLineChartData.dataset11VideoTimeSeriesTop3Emotions" options="main.barChartDiscreteEmotionsOptions"
                     audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments" interesting-points-indices="main.interestingPointsIndices">
                 </topn-time-line-chart>
 
-                <emotional-time-line-chart data="main.data" video-tp-data="main.audioVideoLineChartData.dataset8VideoTimeSeriesTPthreshold"
-                    video-tn-data="main.audioVideoLineChartData.dataset7VideoTimeSeriesTNthreshold" options="main.options" audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments"
+                <markers-time-line-chart
+                        data="main.data"
+                        video-tp-data="main.audioVideoLineChartData.dataset8VideoTimeSeriesTPthreshold"
+                    video-tn-data="main.audioVideoLineChartData.dataset7VideoTimeSeriesTNthreshold"
+                        options="main.options" audio-meta-data="main.jTotableAudioEmotions.result.analysisSegments"
                     video-meta-data="main.screenshotsByAudioTimeSegment" on-click-handler="main.onClickEmotionalTimeLineChart"
-                    on-mouseenter-handler="main.onMouseenterEmotionalTimeLineChart"
-                    trace-interactions-data="main.mappedTracesInteractionsBySession">
-                </emotional-time-line-chart>
+                    on-mouseenter-handler="main.onMouseenterEmotionalTimeLineChart" trace-interactions-data="main.mappedTracesInteractionsBySession"
+                    discrete-emotions-options="main.barChartDiscreteEmotionsOptions"
+                    discrete-emotions-data="main.audioVideoLineChartData.dataset11VideoTimeSeriesTop3Emotions"
+                    interesting-points-indices="main.interestingPointsIndices">
+                </markers-time-line-chart>
             </div>
-            <div class="element">
-                <pie-chart-donut data="main.pieChartData"></pie-chart-donut>
-            </div>
+
         </div>
 
 
@@ -117,7 +154,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.14.1/moment.min.js"></script>
 
     <script src="./node_modules/angular-file-saver/dist/angular-file-saver.bundle.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bxslider/4.2.5/jquery.bxslider.min.js"></script>
+    <!--<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bxslider/4.2.5/jquery.bxslider.min.js"></script>-->
     <script type="text/javascript" src="./lib/jquery.bxslider.js"></script>
 
     <script src="./lib/radarChart.js"></script>

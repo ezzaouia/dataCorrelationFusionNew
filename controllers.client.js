@@ -8,7 +8,7 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
     valenceArousalSegmentMeanFilter, valenceArousalSegmentDomEmotionWeightedMeanFilter,
     audioValenceArousalPosNegMapperFilter, emotionSumFilter, emotionSumGroupFilter, videoValenceArousalPosNegCombinerFilter,
     posNegNeuEmotionsFilter, keyPairWiseObjectArgmaxFilter, groupByPosNegNeuEmotionsFilter, groupByAllEmotionsFilter,
-    emotionSumWithRoundFilter, capitalizeFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter, roundFilter, keyPairWiseTopNFilter, meanFilter) {
+    emotionSumWithRoundFilter, capitalizeFilter, timeToDateFilter, strToNumberFilter, tNthresholdFilter, tPthresholdFilter, roundFilter, keyPairWiseTopNFilter, meanFilter, inverseScaleFilter) {
 
     let vm = this;
 
@@ -18,6 +18,36 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
     this.spSessions = null;
     this.startEndSwitcher = 'START';
     this.mappedTracesInteractionsBySession = [];
+
+    let thresholdValues = [10, 20, 30, 40, 50];
+
+    function filterValenceArousalVectorsByThreshold(thresholdValues, audioVector, videoVector) {
+
+        _.each(thresholdValues, function (threshold) {
+            // 1. filter audioVector by threshold
+            let filteredAudioVec = _.filter(audioVector, function (audioItem) {
+                return inverseScaleFilter(audioItem.arousal) >= threshold;
+            });
+
+            // 2. get filteredAudioVec indices 'x'
+            let filteredAudioVecIndices = _.pluck(filteredAudioVec, 'x');
+
+            // 3. filter video keep only the filtered indices
+            let filteredVideoVec = _.filter(videoVector, function (videoItem) {
+                return _.indexOf(filteredAudioVecIndices, videoItem.x) !== -1 ? true : false;
+            });
+
+            // 4. save files
+            // saveAsFile(_.map(filteredVideoVec, function (item) {
+            //     return item.valence;
+            // }), 'filteredVideoValence-' + threshold + '-');
+
+            // saveAsFile(_.map(filteredAudioVec, function (item) {
+            //     return item.valence;
+            // }), 'filteredAudioValence-' + threshold + '-');
+          
+        });
+    }
 
     vm.tNthreshold = [];
     this.audioVideoLineChartData = {
@@ -506,6 +536,10 @@ function MainCtrl($scope, $rootScope, $http, $mdToast, $log, $interval, scaleFil
             dataset9VideoTimeSeriesAllEmotionsInterestingPoints: screenshotsByAudioTimeSegmentMeanForEachEmotionInterestingPoints,
             dataset11VideoTimeSeriesTop3Emotions: screenshotsByAudioTimeSegmentMeanForEachEmotionTop3
         };
+
+
+
+        filterValenceArousalVectorsByThreshold(thresholdValues, vm.audioVideoLineChartData.dataset3AsAudio, vm.audioVideoLineChartData.dataset1AsVideoWMAl);
 
         //$log.info('vm.audioVideoLineChartData', videoAllImagesScoresByAudioSeg)
 
